@@ -136,7 +136,7 @@
   <section class="screen" data-screen="home">
     <div class="card">
       <h1 class="home-title">🐼ベク取る🐼</h1>
-      <p class="lead">🐼を全部抜こう！</p>
+      <p class="lead">可愛い🐼を逃がしてあげよう！</p>
       <div class="button-stack">
         <button class="btn primary" id="startButton" type="button">ゲーム開始</button>
         <button class="btn ghost" id="rulesButton" type="button">ルール説明</button>
@@ -156,6 +156,21 @@
         間違えると +5秒、ヒントは +15秒。
       </div>
       <button class="btn primary" id="backHomeFromRules" type="button">戻る</button>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="name" hidden>
+    <div class="card">
+      <h2 class="result-title">名前登録</h2>
+      <p class="lead">ランキングに使う名前です。ゲーム開始前に登録してください。</p>
+      <div class="input-row" style="grid-template-columns:1fr;">
+        <input id="playerNameStartInput" maxlength="12" autocomplete="nickname" placeholder="名前" />
+      </div>
+      <div class="message" id="nameRegisterMessage"></div>
+      <div class="button-stack">
+        <button class="btn primary" id="confirmNameButton" type="button">この名前で開始</button>
+        <button class="btn ghost" id="backHomeFromName" type="button">戻る</button>
+      </div>
     </div>
   </section>
 
@@ -230,6 +245,7 @@
     GAME_TITLE_DISPLAY: '🐼ベク取る🐼',
     GAME_URL: 'https://chameleonjp.codeberg.page/bekutoru/',
     LAB_URL: 'https://chameleonjp.codeberg.page/chameleonjp_lab/',
+    PLAYER_NAME_KEY: 'bekutoru_player_name',
     SUPABASE_URL: 'https://mlpnjgezrnhdxsxolyzj.supabase.co',
     SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_drzcy0v97knU6FgjqSgBHw_0A9XPdFM'
   };
@@ -256,7 +272,7 @@
     '🐼もう一回やります？'
   ];
 
-  const Screen = { HOME:'home', RULES:'rules', COUNTDOWN:'countdown', GAME:'game', RESULT:'result' };
+  const Screen = { HOME:'home', RULES:'rules', NAME:'name', COUNTDOWN:'countdown', GAME:'game', RESULT:'result' };
   let currentScreen = Screen.HOME;
   let gameState = 'idle'; // idle / countdown / playing / ended
   let currentStageKey = CURRENT_STAGE_KEY;
@@ -279,6 +295,8 @@
   const hintResultText = document.getElementById('hintResultText');
   const scoreSubmitArea = document.getElementById('scoreSubmitArea');
   const playerNameInput = document.getElementById('playerNameInput');
+  const playerNameStartInput = document.getElementById('playerNameStartInput');
+  const nameRegisterMessage = document.getElementById('nameRegisterMessage');
   const submitScoreButton = document.getElementById('submitScoreButton');
   const submitMessage = document.getElementById('submitMessage');
   const rankingList = document.getElementById('rankingList');
@@ -360,6 +378,56 @@
     toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
   }
 
+  function readCookie(name){
+    const prefix = encodeURIComponent(name) + '=';
+    const parts = document.cookie ? document.cookie.split(';') : [];
+    for (const part of parts) {
+      const item = part.trim();
+      if (item.indexOf(prefix) === 0) return decodeURIComponent(item.slice(prefix.length));
+    }
+    return '';
+  }
+
+  function writeCookie(name, value){
+    const maxAge = 60 * 60 * 24 * 365;
+    document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value) + '; max-age=' + maxAge + '; path=/; SameSite=Lax';
+  }
+
+  function getSavedPlayerName(){
+    let name = '';
+    try { name = localStorage.getItem(CONFIG.PLAYER_NAME_KEY) || ''; } catch (error) { name = ''; }
+    if (!name) name = readCookie(CONFIG.PLAYER_NAME_KEY);
+    return String(name || '').trim().slice(0, 12);
+  }
+
+  function savePlayerName(name){
+    const clean = String(name || '').trim().slice(0, 12);
+    if (!clean) return '';
+    try { localStorage.setItem(CONFIG.PLAYER_NAME_KEY, clean); } catch (error) {}
+    writeCookie(CONFIG.PLAYER_NAME_KEY, clean);
+    return clean;
+  }
+
+  function openNameRegistration(){
+    gameState = 'idle';
+    const saved = getSavedPlayerName();
+    playerNameStartInput.value = saved;
+    nameRegisterMessage.textContent = '';
+    showScreen(Screen.NAME);
+  }
+
+  function confirmNameAndStart(){
+    const name = String(playerNameStartInput.value || '').trim();
+    if (!name) {
+      nameRegisterMessage.textContent = '名前を入力してください。';
+      playerNameStartInput.focus();
+      return;
+    }
+    const saved = savePlayerName(name);
+    playerNameInput.value = saved;
+    beginCountdown();
+  }
+
   function formatTime(ms){
     const total = Math.max(0, Math.round(ms || 0));
     const minutes = Math.floor(total / 60000);
@@ -404,6 +472,8 @@
     isRetired = false;
     submitMessage.textContent = '';
     submitScoreButton.disabled = false;
+    const savedName = getSavedPlayerName();
+    if (savedName) playerNameInput.value = savedName;
     updateHud();
   }
 
@@ -654,6 +724,16 @@
 
   function startFromHome(){
     if (gameState === 'countdown' || gameState === 'playing') return;
+    const savedName = getSavedPlayerName();
+    if (!savedName) {
+      openNameRegistration();
+      return;
+    }
+    playerNameInput.value = savedName;
+    beginCountdown();
+  }
+
+  function beginCountdown(){
     prepareStage();
     gameState = 'countdown';
     showScreen(Screen.COUNTDOWN);
@@ -714,6 +794,10 @@
     wrongResultText.textContent = wrongCount + '回';
     hintResultText.textContent = hintCount + '回';
     scoreSubmitArea.hidden = type !== 'clear';
+    if (type === 'clear') {
+      const savedName = getSavedPlayerName();
+      if (savedName) playerNameInput.value = savedName;
+    }
     submitMessage.textContent = type === 'clear' ? '' : 'リタイアした記録はランキングに送信しません。';
     showScreen(Screen.RESULT);
     fetchBekutoruRanking(10);
@@ -731,6 +815,8 @@
       playerNameInput.focus();
       return;
     }
+    const savedName = savePlayerName(name);
+    playerNameInput.value = savedName;
     if (!supabaseClient) {
       submitMessage.textContent = 'Supabaseに接続できません。URLとキーを確認してください。';
       return;
@@ -748,7 +834,7 @@
     submitMessage.textContent = '送信中...';
 
     const { data, error } = await supabaseClient.rpc('submit_bekutoru_score', {
-      p_display_name: name.slice(0, 12),
+      p_display_name: savedName,
       p_final_time_ms: finalTimeMs,
       p_raw_time_ms: rawTimeMs,
       p_wrong_count: wrongCount,
@@ -812,7 +898,7 @@
   function buildGameShareText(){
     return [
       'ベク取る',
-      '🐼を全部抜こう！',
+      '可愛い🐼を逃がしてあげよう！',
       CONFIG.GAME_URL
     ].join('\n');
   }
@@ -873,6 +959,9 @@
   document.getElementById('rulesButton').addEventListener('click', () => showScreen(Screen.RULES));
   document.getElementById('shareGameButton').addEventListener('click', copyGameShareText);
   document.getElementById('backHomeFromRules').addEventListener('click', () => showScreen(Screen.HOME));
+  document.getElementById('confirmNameButton').addEventListener('click', confirmNameAndStart);
+  document.getElementById('backHomeFromName').addEventListener('click', () => showScreen(Screen.HOME));
+  playerNameStartInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') confirmNameAndStart(); });
   document.getElementById('retireButton').addEventListener('click', retireGame);
   document.getElementById('hintButton').addEventListener('click', useHint);
   document.getElementById('submitScoreButton').addEventListener('click', submitBekutoruScore);
