@@ -213,10 +213,8 @@
       </div>
 
       <div id="scoreSubmitArea">
-        <div class="input-row">
-          <input id="playerNameInput" maxlength="12" autocomplete="nickname" placeholder="名前" />
-          <button class="btn primary small" id="submitScoreButton" type="button">送信</button>
-        </div>
+        <input id="playerNameInput" maxlength="12" autocomplete="nickname" placeholder="名前" hidden />
+        <button id="submitScoreButton" type="button" hidden>送信</button>
         <div class="message" id="submitMessage"></div>
       </div>
 
@@ -471,7 +469,7 @@
     scoreSubmitted = false;
     isRetired = false;
     submitMessage.textContent = '';
-    submitScoreButton.disabled = false;
+    if (submitScoreButton) submitScoreButton.disabled = false;
     const savedName = getSavedPlayerName();
     if (savedName) playerNameInput.value = savedName;
     updateHud();
@@ -793,32 +791,57 @@
     penaltyResultText.textContent = '+' + Math.round(penalty / 1000) + '秒';
     wrongResultText.textContent = wrongCount + '回';
     hintResultText.textContent = hintCount + '回';
-    scoreSubmitArea.hidden = type !== 'clear';
+
+    const savedName = getSavedPlayerName();
+    if (savedName) playerNameInput.value = savedName;
+
+    scoreSubmitArea.hidden = false;
     if (type === 'clear') {
-      const savedName = getSavedPlayerName();
-      if (savedName) playerNameInput.value = savedName;
+      submitMessage.textContent = 'ランキング送信中...';
+    } else {
+      submitMessage.textContent = 'リタイアした記録はランキングに送信しません。';
     }
-    submitMessage.textContent = type === 'clear' ? '' : 'リタイアした記録はランキングに送信しません。';
+
     showScreen(Screen.RESULT);
-    fetchBekutoruRanking(10);
+
+    if (type === 'clear') {
+      submitBekutoruScore();
+    } else {
+      fetchBekutoruRanking(10);
+    }
+  }
+
+  async function ensureSupabaseClientReady(){
+    if (supabaseClient) return true;
+    loadSupabaseScript();
+    for (let i = 0; i < 30; i++) {
+      if (supabaseClient) return true;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return !!supabaseClient;
   }
 
   async function submitBekutoruScore(){
     if (scoreSubmitted) return;
     if (isRetired) {
-      submitMessage.textContent = 'リタイアした記録は送信できません。';
+      submitMessage.textContent = 'リタイアした記録はランキングに送信しません。';
+      fetchBekutoruRanking(10);
       return;
     }
-    const name = String(playerNameInput.value || '').trim();
+
+    const savedName = getSavedPlayerName();
+    const name = String(savedName || playerNameInput.value || '').trim();
     if (!name) {
-      submitMessage.textContent = '名前を入力してください。';
-      playerNameInput.focus();
+      submitMessage.textContent = '名前が未登録です。ホームから登録してください。';
+      fetchBekutoruRanking(10);
       return;
     }
-    const savedName = savePlayerName(name);
-    playerNameInput.value = savedName;
-    if (!supabaseClient) {
-      submitMessage.textContent = 'Supabaseに接続できません。URLとキーを確認してください。';
+    playerNameInput.value = name;
+
+    const ready = await ensureSupabaseClientReady();
+    if (!ready) {
+      submitMessage.textContent = 'ランキング送信に失敗しました。通信環境を確認してください。';
+      fetchBekutoruRanking(10);
       return;
     }
 
@@ -826,35 +849,41 @@
     const finalTimeMs = getFinalTimeMs();
     if (rawTimeMs <= 0 || finalTimeMs <= 0) {
       submitMessage.textContent = 'タイムが不正です。';
+      fetchBekutoruRanking(10);
       return;
     }
 
     scoreSubmitted = true;
-    submitScoreButton.disabled = true;
-    submitMessage.textContent = '送信中...';
+    if (submitScoreButton) submitScoreButton.disabled = true;
+    submitMessage.textContent = 'ランキング送信中...';
 
-    const { data, error } = await supabaseClient.rpc('submit_bekutoru_score', {
-      p_display_name: savedName,
-      p_final_time_ms: finalTimeMs,
-      p_raw_time_ms: rawTimeMs,
-      p_wrong_count: wrongCount,
-      p_hint_count: hintCount,
-      p_stage_key: currentStageKey,
-      p_retired: false
+    const { data, error } = await supabaseClient.rpc('submit_score', {
+      p_display_name: name,
+      p_game_slug: CONFIG.GAME_SLUG,
+      p_score: finalTimeMs,
+      p_client_version: 'bekutoru_v7_auto_submit'
     });
 
     if (error) {
       console.error(error);
       scoreSubmitted = false;
-      submitScoreButton.disabled = false;
-      submitMessage.textContent = '送信に失敗しました。SQL設定を確認してください。';
+      if (submitScoreButton) submitScoreButton.disabled = false;
+      submitMessage.textContent = 'ランキング送信に失敗しました。少し時間を置いてもう一度遊んでください。';
+      fetchBekutoruRanking(10);
       return;
     }
 
     const row = Array.isArray(data) ? data[0] : data;
+    const accepted = !row || row.accepted !== false;
     const newBest = row && (row.is_new_best === true || row.is_new_best === 'true');
-    submitMessage.textContent = newBest ? '送信しました。ベスト更新です。' : '送信しました。';
-    showToast('ランキングに送信しました');
+
+    if (!accepted) {
+      submitMessage.textContent = 'ランキングには登録されませんでした。';
+    } else {
+      submitMessage.textContent = newBest ? 'ランキングに自動送信しました。ベスト更新です。' : 'ランキングに自動送信しました。';
+      showToast('ランキングに送信しました');
+    }
+
     fetchBekutoruRanking(10);
   }
 
@@ -964,7 +993,6 @@
   playerNameStartInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') confirmNameAndStart(); });
   document.getElementById('retireButton').addEventListener('click', retireGame);
   document.getElementById('hintButton').addEventListener('click', useHint);
-  document.getElementById('submitScoreButton').addEventListener('click', submitBekutoruScore);
   document.getElementById('shareResultButton').addEventListener('click', copyShareText);
   document.getElementById('retryButton').addEventListener('click', retryFromResult);
   document.getElementById('homeButtonFromResult').addEventListener('click', backHomeFromResult);
