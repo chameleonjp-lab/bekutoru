@@ -1,0 +1,902 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#eef1f5" />
+<title>ベク取る</title>
+<style>
+  :root{
+    --bg:#eef1f5;
+    --card:#ffffff;
+    --ink:#1d2740;
+    --muted:#6b7388;
+    --line:#dde3ee;
+    --accent:#2f6bff;
+    --accent-soft:#eaf0ff;
+    --danger:#e2483a;
+    --ok:#149b64;
+    --warning:#f5a623;
+    --shadow:0 18px 48px rgba(29,39,64,.14);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;width:100%;min-height:100svh;overflow-x:hidden;overscroll-behavior:none;
+    touch-action:manipulation;-webkit-text-size-adjust:100%;user-select:none;-webkit-user-select:none;
+    background:var(--bg);color:var(--ink);
+  }
+  body{display:flex;justify-content:center;align-items:stretch;}
+  button,input,a{font:inherit;touch-action:manipulation;}
+  button{cursor:pointer;}
+  a{color:var(--accent);text-decoration:none;font-weight:900;}
+  [hidden]{display:none!important;}
+  .app{
+    width:100%;max-width:430px;min-height:100svh;margin:0 auto;
+    padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .screen{width:100%;}
+  .card{
+    width:100%;background:var(--card);border:1px solid var(--line);border-radius:28px;
+    box-shadow:var(--shadow);padding:20px;display:grid;gap:16px;
+  }
+  .home-title{font-size:38px;line-height:1.1;margin:0;text-align:center;font-weight:1000;letter-spacing:.02em;}
+  .lead{margin:0;color:var(--muted);line-height:1.7;font-size:14px;text-align:center;}
+  .rule-box{background:#f7f9fc;border:1px solid var(--line);border-radius:18px;padding:14px;color:var(--ink);line-height:1.75;font-size:14px;}
+  .button-stack{display:grid;gap:10px;}
+  .btn{
+    appearance:none;border:1px solid var(--line);border-radius:18px;padding:14px 14px;
+    background:#f8faff;color:var(--ink);font-weight:900;font-size:16px;min-height:50px;
+    display:inline-flex;justify-content:center;align-items:center;gap:8px;
+  }
+  .btn.primary{background:var(--accent-soft);border-color:#cbdcff;color:var(--accent);}
+  .btn.danger{background:#fff4f3;border-color:#ffd3d0;color:var(--danger);}
+  .btn.ghost{background:#fff;}
+  .btn.small{min-height:40px;padding:9px 12px;border-radius:14px;font-size:13px;}
+  .btn:disabled{opacity:.52;cursor:default;}
+  .lab-link{display:flex;justify-content:center;align-items:center;min-height:44px;border:1px dashed #cbd5e3;border-radius:16px;background:#fafbff;}
+
+  .countdown-card{min-height:360px;display:grid;place-items:center;text-align:center;}
+  .countdown-num{font-size:88px;font-weight:1000;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .countdown-label{margin-top:12px;color:var(--muted);font-weight:800;}
+
+  .game-screen{min-height:100svh;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:8px;padding:0;}
+  .game-hud{
+    height:42px;display:grid;grid-template-columns:70px 1fr 76px;align-items:center;gap:6px;
+  }
+  .hud-pill{
+    height:36px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.88);
+    display:flex;align-items:center;justify-content:center;font-weight:1000;font-variant-numeric:tabular-nums;
+    box-shadow:0 6px 18px rgba(29,39,64,.06);font-size:14px;
+  }
+  .hud-pill .sub{font-size:10px;color:var(--muted);margin-right:4px;font-weight:800;}
+  .timer{font-size:18px;letter-spacing:.02em;}
+  .retire-btn{
+    height:36px;border:none;border-radius:999px;background:#fff4f3;color:var(--danger);font-weight:1000;font-size:13px;
+    padding:0 10px;
+  }
+  .board-shell{
+    position:relative;width:100%;height:calc(100svh - 158px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    min-height:330px;max-height:660px;background:var(--card);border:1px solid var(--line);
+    border-radius:26px;box-shadow:var(--shadow);display:grid;place-items:center;overflow:hidden;
+  }
+  canvas{display:block;touch-action:none;max-width:100%;max-height:100%;}
+  .wrong-bubble{
+    position:fixed;left:50%;top:48%;transform:translate(-50%,-50%) scale(.96);z-index:50;
+    max-width:82vw;padding:14px 18px;border-radius:999px;background:rgba(255,255,255,.96);
+    box-shadow:0 14px 42px rgba(0,0,0,.2);font-size:18px;font-weight:1000;text-align:center;
+    pointer-events:none;opacity:0;transition:opacity 120ms ease, transform 120ms ease;
+  }
+  .wrong-bubble.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  .game-bottom{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center;}
+  .penalty-text{font-size:12px;color:var(--danger);font-weight:900;text-align:center;min-height:18px;}
+
+  .result-card{gap:14px;}
+  .result-title{font-size:28px;font-weight:1000;text-align:center;margin:0;}
+  .score-main{font-size:42px;font-weight:1000;color:var(--accent);text-align:center;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .detail-item{background:#f7f9fc;border:1px solid var(--line);border-radius:16px;padding:10px;text-align:center;}
+  .detail-item .label{font-size:11px;color:var(--muted);font-weight:800;}
+  .detail-item .value{font-size:15px;font-weight:1000;font-variant-numeric:tabular-nums;margin-top:3px;}
+  .input-row{display:grid;grid-template-columns:1fr auto;gap:8px;}
+  input{
+    width:100%;border:1px solid var(--line);border-radius:16px;background:#fff;padding:0 12px;min-height:48px;
+    font-size:16px;font-weight:800;color:var(--ink);outline:none;
+  }
+  input:focus{border-color:#b8c9ff;box-shadow:0 0 0 3px rgba(47,107,255,.12);}
+  .message{min-height:20px;font-size:13px;line-height:1.55;color:var(--muted);text-align:center;font-weight:800;}
+  .ranking{background:#f7f9fc;border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;gap:8px;}
+  .ranking h3{margin:0;font-size:14px;text-align:center;}
+  .ranking-list{display:grid;gap:6px;}
+  .rank-row{display:grid;grid-template-columns:36px 1fr auto;gap:8px;align-items:center;font-size:13px;background:#fff;border:1px solid #edf0f5;border-radius:12px;padding:8px;}
+  .rank-row .rank{font-weight:1000;color:var(--accent);}
+  .rank-row .name{font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rank-row .score{font-weight:1000;font-variant-numeric:tabular-nums;}
+  .toast{
+    position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%) translateY(18px);
+    background:rgba(29,39,64,.94);color:#fff;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:900;
+    opacity:0;pointer-events:none;transition:opacity 150ms ease, transform 150ms ease;z-index:100;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  @media (max-height:620px){
+    .app{padding-top:max(6px,env(safe-area-inset-top));padding-bottom:max(6px,env(safe-area-inset-bottom));}
+    .game-screen{gap:6px;}
+    .game-hud{height:38px;grid-template-columns:62px 1fr 68px;}
+    .hud-pill{height:32px;font-size:13px;}.timer{font-size:16px;}.retire-btn{height:32px;font-size:12px;}
+    .board-shell{height:calc(100svh - 142px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:300px;border-radius:22px;}
+    .btn{min-height:44px;padding:10px 12px;font-size:14px;border-radius:15px;}
+    .home-title{font-size:32px;}.card{padding:16px;border-radius:24px;gap:12px;}
+    .score-main{font-size:36px;}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <section class="screen" data-screen="home">
+    <div class="card">
+      <h1 class="home-title">🐼ベク取る🐼</h1>
+      <p class="lead">🐼を全部抜こう！</p>
+      <div class="button-stack">
+        <button class="btn primary" id="startButton" type="button">ゲーム開始</button>
+        <button class="btn ghost" id="rulesButton" type="button">ルール説明</button>
+        <button class="btn ghost" id="shareGameButton" type="button">ゲームをシェア</button>
+        <a class="lab-link" href="https://chameleonjp.codeberg.page/chameleonjp_lab/" rel="noopener">その他のゲーム</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="rules" hidden>
+    <div class="card">
+      <h2 class="result-title">ルール説明</h2>
+      <div class="rule-box">
+        🐼が先頭です。<br>
+        先が端まで空いている矢だけ抜けます。<br>
+        全部抜いたらクリア。<br>
+        間違えると +5秒、ヒントは +15秒。
+      </div>
+      <button class="btn primary" id="backHomeFromRules" type="button">戻る</button>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="countdown" hidden>
+    <div class="card countdown-card">
+      <div>
+        <div class="countdown-num" id="countdownText">3</div>
+        <div class="countdown-label">盤面はまだ見えません</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen game-screen" data-screen="game" hidden>
+    <header class="game-hud">
+      <div class="hud-pill"><span class="sub">残り</span><span id="remainCount">72</span></div>
+      <div class="hud-pill timer" id="timerText">00:00.000</div>
+      <button class="retire-btn" id="retireButton" type="button">リタイア</button>
+    </header>
+    <div class="board-shell" id="boardShell">
+      <canvas id="gameCanvas"></canvas>
+      <div class="wrong-bubble" id="wrongBubble"></div>
+    </div>
+    <div>
+      <div class="game-bottom">
+        <button class="btn primary" id="hintButton" type="button">ヒント</button>
+        <div class="penalty-text" id="penaltyText"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" data-screen="result" hidden>
+    <div class="card result-card">
+      <h2 class="result-title" id="resultTitle">結果：クリア</h2>
+      <div class="score-main" id="resultScore">00:00.000</div>
+      <div class="detail-grid">
+        <div class="detail-item"><div class="label">実時間</div><div class="value" id="rawTimeText">00:00.000</div></div>
+        <div class="detail-item"><div class="label">加算</div><div class="value" id="penaltyResultText">+0秒</div></div>
+        <div class="detail-item"><div class="label">間違い</div><div class="value" id="wrongResultText">0回</div></div>
+        <div class="detail-item"><div class="label">ヒント</div><div class="value" id="hintResultText">0回</div></div>
+      </div>
+
+      <div id="scoreSubmitArea">
+        <div class="input-row">
+          <input id="playerNameInput" maxlength="12" autocomplete="nickname" placeholder="名前" />
+          <button class="btn primary small" id="submitScoreButton" type="button">送信</button>
+        </div>
+        <div class="message" id="submitMessage"></div>
+      </div>
+
+      <div class="ranking" id="rankingBox">
+        <h3>ランキング</h3>
+        <div class="ranking-list" id="rankingList"><div class="message">読み込み中...</div></div>
+      </div>
+
+      <div class="button-stack">
+        <button class="btn ghost" id="shareResultButton" type="button">結果をシェア</button>
+        <button class="btn primary" id="retryButton" type="button">もう一度</button>
+        <button class="btn ghost" id="homeButtonFromResult" type="button">ホームへ</button>
+        <a class="lab-link" href="https://chameleonjp.codeberg.page/chameleonjp_lab/" rel="noopener">その他のゲーム</a>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+(function(){
+  const CONFIG = {
+    GAME_SLUG: 'bekutoru',
+    GAME_TITLE: 'ベク取る',
+    GAME_TITLE_DISPLAY: '🐼ベク取る🐼',
+    GAME_URL: 'https://chameleonjp.codeberg.page/bekutoru/',
+    LAB_URL: 'https://chameleonjp.codeberg.page/chameleonjp_lab/',
+    SUPABASE_URL: 'https://mlpnjgezrnhdxsxolyzj.supabase.co',
+    SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_drzcy0v97knU6FgjqSgBHw_0A9XPdFM'
+  };
+
+  const GW = 16;
+  const GH = 22;
+  const TARGET_ARROWS = 72;
+  const WRONG_PENALTY_MS = 5000;
+  const HINT_PENALTY_MS = 15000;
+  const CURRENT_STAGE_KEY = 'stage_001';
+  const BASE_ARROWS = [{"id":0,"cells":[{"x":13,"y":4},{"x":12,"y":4},{"x":12,"y":5},{"x":11,"y":5},{"x":11,"y":6},{"x":10,"y":6}]},{"id":1,"cells":[{"x":12,"y":7},{"x":12,"y":6},{"x":13,"y":6},{"x":13,"y":5},{"x":14,"y":5}]},{"id":2,"cells":[{"x":14,"y":7},{"x":13,"y":7},{"x":13,"y":8},{"x":12,"y":8},{"x":12,"y":9},{"x":11,"y":9}]},{"id":3,"cells":[{"x":11,"y":7},{"x":11,"y":8},{"x":10,"y":8},{"x":9,"y":8}]},{"id":4,"cells":[{"x":11,"y":3},{"x":11,"y":4},{"x":10,"y":4},{"x":10,"y":5},{"x":9,"y":5},{"x":9,"y":4}]},{"id":5,"cells":[{"x":10,"y":7},{"x":9,"y":7},{"x":9,"y":6},{"x":8,"y":6}]},{"id":6,"cells":[{"x":9,"y":9},{"x":10,"y":9},{"x":10,"y":10},{"x":11,"y":10}]},{"id":7,"cells":[{"x":14,"y":8},{"x":14,"y":9},{"x":13,"y":9},{"x":13,"y":10}]},{"id":8,"cells":[{"x":12,"y":10},{"x":12,"y":11},{"x":13,"y":11},{"x":14,"y":11}]},{"id":9,"cells":[{"x":8,"y":4},{"x":8,"y":5},{"x":7,"y":5},{"x":7,"y":6},{"x":6,"y":6}]},{"id":10,"cells":[{"x":8,"y":7},{"x":8,"y":8},{"x":8,"y":9},{"x":7,"y":9},{"x":7,"y":10},{"x":6,"y":10}]},{"id":11,"cells":[{"x":6,"y":8},{"x":7,"y":8},{"x":7,"y":7},{"x":6,"y":7},{"x":5,"y":7}]},{"id":12,"cells":[{"x":5,"y":6},{"x":5,"y":5},{"x":6,"y":5},{"x":6,"y":4},{"x":6,"y":3},{"x":5,"y":3}]},{"id":13,"cells":[{"x":13,"y":3},{"x":12,"y":3},{"x":12,"y":2},{"x":11,"y":2},{"x":10,"y":2},{"x":9,"y":2}]},{"id":14,"cells":[{"x":7,"y":4},{"x":7,"y":3},{"x":8,"y":3},{"x":8,"y":2}]},{"id":15,"cells":[{"x":8,"y":1},{"x":7,"y":1},{"x":7,"y":2},{"x":6,"y":2},{"x":5,"y":2},{"x":5,"y":1}]},{"id":16,"cells":[{"x":10,"y":11},{"x":9,"y":11},{"x":9,"y":10},{"x":8,"y":10},{"x":8,"y":11}]},{"id":17,"cells":[{"x":7,"y":0},{"x":8,"y":0},{"x":9,"y":0},{"x":9,"y":1},{"x":10,"y":1},{"x":10,"y":0}]},{"id":18,"cells":[{"x":14,"y":10},{"x":15,"y":10},{"x":15,"y":9},{"x":15,"y":8},{"x":15,"y":7}]},{"id":19,"cells":[{"x":6,"y":1},{"x":6,"y":0},{"x":5,"y":0},{"x":4,"y":0}]},{"id":20,"cells":[{"x":11,"y":11},{"x":11,"y":12},{"x":12,"y":12},{"x":13,"y":12}]},{"id":21,"cells":[{"x":12,"y":0},{"x":11,"y":0},{"x":11,"y":1},{"x":12,"y":1},{"x":13,"y":1}]},{"id":22,"cells":[{"x":7,"y":13},{"x":8,"y":13},{"x":8,"y":12},{"x":7,"y":12},{"x":7,"y":11},{"x":6,"y":11}]},{"id":23,"cells":[{"x":5,"y":4},{"x":4,"y":4},{"x":4,"y":5},{"x":3,"y":5},{"x":3,"y":4}]},{"id":24,"cells":[{"x":3,"y":8},{"x":3,"y":7},{"x":4,"y":7},{"x":4,"y":6},{"x":3,"y":6}]},{"id":25,"cells":[{"x":10,"y":12},{"x":9,"y":12},{"x":9,"y":13},{"x":10,"y":13},{"x":11,"y":13}]},{"id":26,"cells":[{"x":5,"y":10},{"x":5,"y":11},{"x":5,"y":12},{"x":6,"y":12},{"x":6,"y":13},{"x":6,"y":14}]},{"id":27,"cells":[{"x":3,"y":2},{"x":4,"y":2},{"x":4,"y":3},{"x":3,"y":3}]},{"id":28,"cells":[{"x":5,"y":9},{"x":5,"y":8},{"x":4,"y":8},{"x":4,"y":9}]},{"id":29,"cells":[{"x":8,"y":14},{"x":7,"y":14},{"x":7,"y":15},{"x":6,"y":15},{"x":6,"y":16}]},{"id":30,"cells":[{"x":14,"y":6},{"x":15,"y":6},{"x":15,"y":5}]},{"id":31,"cells":[{"x":15,"y":3},{"x":15,"y":4},{"x":14,"y":4},{"x":14,"y":3}]},{"id":32,"cells":[{"x":3,"y":9},{"x":3,"y":10},{"x":3,"y":11},{"x":4,"y":11},{"x":4,"y":12},{"x":4,"y":13}]},{"id":33,"cells":[{"x":11,"y":14},{"x":12,"y":14},{"x":12,"y":13},{"x":13,"y":13},{"x":13,"y":14}]},{"id":34,"cells":[{"x":15,"y":11},{"x":15,"y":12},{"x":14,"y":12},{"x":14,"y":13}]},{"id":35,"cells":[{"x":1,"y":11},{"x":2,"y":11},{"x":2,"y":10},{"x":2,"y":9},{"x":2,"y":8},{"x":2,"y":7}]},{"id":36,"cells":[{"x":9,"y":15},{"x":8,"y":15},{"x":8,"y":16},{"x":7,"y":16},{"x":7,"y":17}]},{"id":37,"cells":[{"x":9,"y":14},{"x":10,"y":14},{"x":10,"y":15},{"x":10,"y":16}]},{"id":38,"cells":[{"x":9,"y":16},{"x":9,"y":17},{"x":8,"y":17},{"x":8,"y":18}]},{"id":39,"cells":[{"x":2,"y":14},{"x":2,"y":13},{"x":2,"y":12},{"x":3,"y":12},{"x":3,"y":13}]},{"id":40,"cells":[{"x":1,"y":7},{"x":1,"y":6},{"x":2,"y":6},{"x":2,"y":5}]},{"id":41,"cells":[{"x":13,"y":2},{"x":14,"y":2},{"x":15,"y":2},{"x":15,"y":1},{"x":14,"y":1},{"x":14,"y":0}]},{"id":42,"cells":[{"x":5,"y":13},{"x":5,"y":14},{"x":4,"y":14},{"x":4,"y":15}]},{"id":43,"cells":[{"x":4,"y":1},{"x":3,"y":1},{"x":3,"y":0},{"x":2,"y":0},{"x":1,"y":0}]},{"id":44,"cells":[{"x":3,"y":14},{"x":3,"y":15},{"x":2,"y":15}]},{"id":45,"cells":[{"x":13,"y":15},{"x":12,"y":15},{"x":11,"y":15},{"x":11,"y":16},{"x":12,"y":16}]},{"id":46,"cells":[{"x":15,"y":13},{"x":15,"y":14},{"x":14,"y":14},{"x":14,"y":15}]},{"id":47,"cells":[{"x":15,"y":15},{"x":15,"y":16},{"x":14,"y":16},{"x":13,"y":16},{"x":13,"y":17},{"x":13,"y":18}]},{"id":48,"cells":[{"x":5,"y":15},{"x":5,"y":16},{"x":4,"y":16},{"x":3,"y":16},{"x":3,"y":17}]},{"id":49,"cells":[{"x":0,"y":11},{"x":0,"y":12},{"x":1,"y":12},{"x":1,"y":13},{"x":0,"y":13},{"x":0,"y":14}]},{"id":50,"cells":[{"x":12,"y":19},{"x":12,"y":18},{"x":12,"y":17},{"x":11,"y":17},{"x":11,"y":18}]},{"id":51,"cells":[{"x":6,"y":18},{"x":6,"y":17},{"x":5,"y":17},{"x":4,"y":17},{"x":4,"y":18}]},{"id":52,"cells":[{"x":15,"y":19},{"x":15,"y":18},{"x":15,"y":17},{"x":14,"y":17},{"x":14,"y":18}]},{"id":53,"cells":[{"x":9,"y":18},{"x":10,"y":18},{"x":10,"y":19},{"x":11,"y":19},{"x":11,"y":20}]},{"id":54,"cells":[{"x":2,"y":3},{"x":2,"y":2},{"x":2,"y":1},{"x":1,"y":1}]},{"id":55,"cells":[{"x":1,"y":14},{"x":1,"y":15},{"x":1,"y":16},{"x":2,"y":16},{"x":2,"y":17},{"x":2,"y":18}]},{"id":56,"cells":[{"x":13,"y":19},{"x":14,"y":19},{"x":14,"y":20}]},{"id":57,"cells":[{"x":0,"y":15},{"x":0,"y":16},{"x":0,"y":17},{"x":1,"y":17},{"x":1,"y":18}]},{"id":58,"cells":[{"x":12,"y":20},{"x":13,"y":20},{"x":13,"y":21},{"x":12,"y":21},{"x":11,"y":21}]},{"id":59,"cells":[{"x":3,"y":18},{"x":3,"y":19},{"x":2,"y":19},{"x":1,"y":19}]},{"id":60,"cells":[{"x":7,"y":18},{"x":7,"y":19},{"x":6,"y":19},{"x":6,"y":20}]},{"id":61,"cells":[{"x":0,"y":10},{"x":0,"y":9},{"x":1,"y":9},{"x":1,"y":8},{"x":0,"y":8}]},{"id":62,"cells":[{"x":5,"y":18},{"x":5,"y":19}]},{"id":63,"cells":[{"x":8,"y":21},{"x":9,"y":21},{"x":9,"y":20},{"x":10,"y":20},{"x":10,"y":21}]},{"id":64,"cells":[{"x":4,"y":19},{"x":4,"y":20},{"x":3,"y":20}]},{"id":65,"cells":[{"x":2,"y":4},{"x":1,"y":4},{"x":1,"y":5},{"x":0,"y":5},{"x":0,"y":4}]},{"id":66,"cells":[{"x":2,"y":21},{"x":2,"y":20},{"x":1,"y":20}]},{"id":67,"cells":[{"x":1,"y":2},{"x":0,"y":2},{"x":0,"y":1},{"x":0,"y":0}]},{"id":68,"cells":[{"x":8,"y":20},{"x":7,"y":20},{"x":7,"y":21}]},{"id":69,"cells":[{"x":0,"y":18},{"x":0,"y":19}]},{"id":70,"cells":[{"x":5,"y":20},{"x":5,"y":21}]},{"id":71,"cells":[{"x":14,"y":21},{"x":15,"y":21}]}];
+
+  const WRONG_MESSAGES = [
+    '🐼違いましたね',
+    '🐼そうじゃなくて',
+    '🐼松のや食べて落ち着こう',
+    '🐼間違えました',
+    '🐼あ、そっちか',
+    '🐼ほろ酔い飲んでる？',
+    '🐼あれ、なんで',
+    '🐼大丈夫ですか？',
+    '🐼全然分かんない',
+    '🐼見てましたか？',
+    '🐼もう一回やります？'
+  ];
+
+  const Screen = { HOME:'home', RULES:'rules', COUNTDOWN:'countdown', GAME:'game', RESULT:'result' };
+  let currentScreen = Screen.HOME;
+  let gameState = 'idle'; // idle / countdown / playing / ended
+  let currentStageKey = CURRENT_STAGE_KEY;
+
+  const app = document.getElementById('app');
+  const cv = document.getElementById('gameCanvas');
+  const ctx = cv.getContext('2d');
+  const boardShell = document.getElementById('boardShell');
+  const remainCount = document.getElementById('remainCount');
+  const timerText = document.getElementById('timerText');
+  const penaltyText = document.getElementById('penaltyText');
+  const countdownText = document.getElementById('countdownText');
+  const wrongBubble = document.getElementById('wrongBubble');
+  const toastEl = document.getElementById('toast');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultScore = document.getElementById('resultScore');
+  const rawTimeText = document.getElementById('rawTimeText');
+  const penaltyResultText = document.getElementById('penaltyResultText');
+  const wrongResultText = document.getElementById('wrongResultText');
+  const hintResultText = document.getElementById('hintResultText');
+  const scoreSubmitArea = document.getElementById('scoreSubmitArea');
+  const playerNameInput = document.getElementById('playerNameInput');
+  const submitScoreButton = document.getElementById('submitScoreButton');
+  const submitMessage = document.getElementById('submitMessage');
+  const rankingList = document.getElementById('rankingList');
+
+  let supabaseClient = null;
+  let supabaseLoading = false;
+
+  function initSupabaseClient(){
+    try {
+      if (window.supabase && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_PUBLISHABLE_KEY) {
+        supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_PUBLISHABLE_KEY);
+      }
+    } catch (error) {
+      console.warn('Supabase init failed', error);
+    }
+  }
+
+  function loadSupabaseScript(){
+    if (supabaseClient || supabaseLoading) return;
+    supabaseLoading = true;
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+    script.async = true;
+    script.onload = () => { supabaseLoading = false; initSupabaseClient(); };
+    script.onerror = () => { supabaseLoading = false; console.warn('Supabase script load failed'); };
+    document.head.appendChild(script);
+  }
+
+  let cs = 20;
+  let arrows = [];
+  let occ = new Int16Array(GW * GH).fill(-1);
+  let removed = new Set();
+  let pullAnimations = [];
+  let flash = new Map();
+  let hintMarks = new Map();
+  let gameStartAt = 0;
+  let gameEndAt = 0;
+  let wrongCount = 0;
+  let hintCount = 0;
+  let scoreSubmitted = false;
+  let isRetired = false;
+  let wrongBubbleTimer = null;
+  let toastTimer = null;
+  let countdownTimer = null;
+
+  const idx = (x, y) => y * GW + x;
+  const inb = (x, y) => x >= 0 && x < GW && y >= 0 && y < GH;
+
+  function preventMobileBrowserGestures(){
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function(event){
+      const now = Date.now();
+      const interactive = event.target && event.target.closest && event.target.closest('a, button, input, textarea, select, .allow-touch');
+      if (!interactive && now - lastTouchEnd <= 350) event.preventDefault();
+      lastTouchEnd = now;
+    }, {passive:false});
+
+    document.addEventListener('touchmove', function(event){
+      if (event.touches && event.touches.length > 1) event.preventDefault();
+    }, {passive:false});
+
+    ['gesturestart','gesturechange','gestureend','dblclick','contextmenu'].forEach((type) => {
+      document.addEventListener(type, (event) => event.preventDefault(), {passive:false});
+    });
+  }
+
+  function showScreen(screen){
+    currentScreen = screen;
+    document.querySelectorAll('[data-screen]').forEach((el) => {
+      el.hidden = el.dataset.screen !== screen;
+    });
+    app.classList.toggle('game-mode', screen === Screen.GAME);
+  }
+
+  function showToast(message){
+    toastEl.textContent = message;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+  }
+
+  function formatTime(ms){
+    const total = Math.max(0, Math.round(ms || 0));
+    const minutes = Math.floor(total / 60000);
+    const seconds = Math.floor((total % 60000) / 1000);
+    const millis = total % 1000;
+    return String(minutes).padStart(2,'0') + ':' + String(seconds).padStart(2,'0') + '.' + String(millis).padStart(3,'0');
+  }
+
+  function getRawTimeMs(){
+    if (!gameStartAt) return 0;
+    const end = gameEndAt || performance.now();
+    return Math.max(0, Math.round(end - gameStartAt));
+  }
+
+  function getPenaltyMs(){
+    return wrongCount * WRONG_PENALTY_MS + hintCount * HINT_PENALTY_MS;
+  }
+
+  function getFinalTimeMs(){
+    return getRawTimeMs() + getPenaltyMs();
+  }
+
+  function cloneStage(){
+    arrows = BASE_ARROWS.map((a, i) => ({ id:i, cells:a.cells.map(c => ({x:c.x, y:c.y})) }));
+  }
+
+  function prepareStage(){
+    cloneStage();
+    occ = new Int16Array(GW * GH).fill(-1);
+    for (const a of arrows) {
+      for (const c of a.cells) occ[idx(c.x, c.y)] = a.id;
+    }
+    removed = new Set();
+    pullAnimations = [];
+    flash.clear();
+    hintMarks.clear();
+    gameStartAt = 0;
+    gameEndAt = 0;
+    wrongCount = 0;
+    hintCount = 0;
+    scoreSubmitted = false;
+    isRetired = false;
+    submitMessage.textContent = '';
+    submitScoreButton.disabled = false;
+    updateHud();
+  }
+
+  function activeArrowCount(){
+    return arrows.length - removed.size;
+  }
+
+  function updateHud(){
+    remainCount.textContent = String(activeArrowCount());
+    timerText.textContent = formatTime(getFinalTimeMs());
+    const penalty = getPenaltyMs();
+    penaltyText.textContent = penalty ? ('加算 +' + Math.round(penalty / 1000) + '秒') : '';
+  }
+
+  function isExtractable(a){
+    const c = a.cells;
+    if (c.length < 2) return false;
+    const h = c[c.length - 1];
+    const p = c[c.length - 2];
+    const dx = Math.sign(h.x - p.x);
+    const dy = Math.sign(h.y - p.y);
+    let x = h.x + dx;
+    let y = h.y + dy;
+    while (inb(x, y)) {
+      const id = occ[idx(x, y)];
+      if (id !== -1 && id !== a.id) return false;
+      x += dx;
+      y += dy;
+    }
+    return true;
+  }
+
+  function fitCanvas(){
+    const availW = Math.max(280, boardShell.clientWidth - 16);
+    const availH = Math.max(300, boardShell.clientHeight - 16);
+    cs = Math.max(10, Math.floor(Math.min(availW / GW, availH / GH)));
+    const w = cs * GW;
+    const h = cs * GH;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    cv.width = Math.floor(w * dpr);
+    cv.height = Math.floor(h * dpr);
+    cv.style.width = w + 'px';
+    cv.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  const center = c => ({x:(c.x + 0.5) * cs, y:(c.y + 0.5) * cs});
+  const lineW = () => Math.max(5.2, cs * 0.42);
+
+  function headDir(a){
+    const c = a.cells;
+    const h = c[c.length - 1];
+    const p = c[c.length - 2];
+    return {x:Math.sign(h.x - p.x), y:Math.sign(h.y - p.y)};
+  }
+
+  function strokePts(pts, color, alpha = 1, widthRate = 1){
+    if (pts.length < 2) return;
+    ctx.save();
+    ctx.lineWidth = lineW() * widthRate;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPandaHead(P, alpha = 1, scale = 1){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.font = Math.max(13, cs * 1.02 * scale) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🐼', P.x, P.y + cs * 0.03);
+    ctx.restore();
+  }
+
+  function drawStaticArrow(a, now){
+    const pts = a.cells.map(center);
+    let color = '#202950';
+    const f = flash.get(a.id);
+    if (f) {
+      if (now < f.until) color = f.color;
+      else flash.delete(a.id);
+    }
+
+    const h = hintMarks.get(a.id);
+    if (h) {
+      if (now < h.until) {
+        const pulse = 0.55 + 0.25 * Math.sin((now - h.start) / 70);
+        strokePts(pts, '#22b06a', 0.22 + pulse * 0.18, 2.15);
+      } else {
+        hintMarks.delete(a.id);
+      }
+    }
+
+    strokePts(pts, color, 1, 1);
+    drawPandaHead(pts[pts.length - 1], 1, 1);
+  }
+
+  function buildPullPoly(a){
+    const pts = a.cells.map(center);
+    const d = headDir(a);
+    const last = pts[pts.length - 1];
+    const ext = {x:last.x + d.x * cs * (Math.max(GW, GH) + 3), y:last.y + d.y * cs * (Math.max(GW, GH) + 3)};
+    const full = pts.concat([ext]);
+    const cum = [0];
+    for (let i=1; i<full.length; i++) {
+      const A = full[i-1], B = full[i];
+      cum.push(cum[i-1] + Math.hypot(B.x - A.x, B.y - A.y));
+    }
+    return {full, cum, headArc:cum[pts.length - 1], total:cum[cum.length - 1], dir:d};
+  }
+
+  function sampleAt(poly, arc){
+    if (arc <= 0) return {...poly.full[0]};
+    if (arc >= poly.total) return {...poly.full[poly.full.length - 1]};
+    let i = 1;
+    while (i < poly.cum.length && poly.cum[i] < arc) i++;
+    const t = (arc - poly.cum[i-1]) / (poly.cum[i] - poly.cum[i-1]);
+    const A = poly.full[i-1], B = poly.full[i];
+    return {x:A.x + (B.x - A.x) * t, y:A.y + (B.y - A.y) * t};
+  }
+
+  function windowPts(poly, back, front){
+    back = Math.max(0, back);
+    front = Math.min(poly.total, front);
+    if (front <= back) return [];
+    const out = [sampleAt(poly, back)];
+    for (let i=0; i<poly.cum.length; i++) {
+      if (poly.cum[i] > back && poly.cum[i] < front) out.push({...poly.full[i]});
+    }
+    out.push(sampleAt(poly, front));
+    return out;
+  }
+
+  function draw(){
+    const now = performance.now();
+    ctx.clearRect(0, 0, cv.width, cv.height);
+
+    for (const a of arrows) {
+      if (removed.has(a.id)) continue;
+      drawStaticArrow(a, now);
+    }
+
+    const alive = [];
+    for (const an of pullAnimations) {
+      let p = Math.min(1, (now - an.start) / an.dur);
+      p = 1 - Math.pow(1 - p, 4);
+      const poly = an.poly;
+      const front = poly.headArc + p * poly.total;
+      const back = front - poly.headArc;
+      const pts = windowPts(poly, back, front);
+      if (pts.length >= 2) {
+        strokePts(pts, '#2f6bff', 0.95, 1);
+        drawPandaHead(pts[pts.length - 1], 0.95, 1);
+      }
+      if (p < 1) alive.push(an);
+    }
+    pullAnimations = alive;
+  }
+
+  function distToSegment(px, py, a, b){
+    const vx = b.x - a.x;
+    const vy = b.y - a.y;
+    const wx = px - a.x;
+    const wy = py - a.y;
+    const len2 = vx * vx + vy * vy;
+    let t = len2 ? ((wx * vx + wy * vy) / len2) : 0;
+    t = Math.max(0, Math.min(1, t));
+    const x = a.x + vx * t;
+    const y = a.y + vy * t;
+    return Math.hypot(px - x, py - y);
+  }
+
+  function hitArrow(px, py){
+    let best = -1;
+    let bestD = Infinity;
+    const limit = Math.max(lineW() * 2.05, cs * 0.72);
+    for (const a of arrows) {
+      if (removed.has(a.id)) continue;
+      const pts = a.cells.map(center);
+      for (let i=1; i<pts.length; i++) {
+        const d = distToSegment(px, py, pts[i-1], pts[i]);
+        if (d < bestD) { bestD = d; best = a.id; }
+      }
+      const head = pts[pts.length - 1];
+      const headD = Math.hypot(px - head.x, py - head.y) * 0.78;
+      if (headD < bestD) { bestD = headD; best = a.id; }
+    }
+    return bestD <= limit ? best : -1;
+  }
+
+  function showWrongBubble(){
+    const text = WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)];
+    wrongBubble.textContent = text;
+    wrongBubble.classList.add('show');
+    clearTimeout(wrongBubbleTimer);
+    wrongBubbleTimer = setTimeout(() => wrongBubble.classList.remove('show'), 2000);
+  }
+
+  function handleWrongArrow(id){
+    wrongCount++;
+    flash.set(id, {until:performance.now() + 230, color:'#e2483a'});
+    if (navigator.vibrate) navigator.vibrate(22);
+    showWrongBubble();
+    updateHud();
+  }
+
+  function removeArrowImmediately(id){
+    const a = arrows[id];
+    const poly = buildPullPoly(a);
+    removed.add(id);
+    for (const c of a.cells) occ[idx(c.x, c.y)] = -1;
+    pullAnimations.push({id, poly, start:performance.now(), dur:Math.min(190, 78 + a.cells.length * 16)});
+    updateHud();
+
+    if (activeArrowCount() === 0) finishGameClear();
+  }
+
+  function handleBoardPointer(event){
+    if (gameState !== 'playing') return;
+    const rect = cv.getBoundingClientRect();
+    const px = event.clientX - rect.left;
+    const py = event.clientY - rect.top;
+    const id = hitArrow(px, py);
+    if (id === -1) return;
+    const a = arrows[id];
+    if (!a || removed.has(id)) return;
+    if (isExtractable(a)) removeArrowImmediately(id);
+    else handleWrongArrow(id);
+  }
+
+  function useHint(){
+    if (gameState !== 'playing') return;
+    const candidates = arrows.filter(a => !removed.has(a.id) && isExtractable(a));
+    if (!candidates.length) return;
+    const a = candidates[(Math.random() * candidates.length) | 0];
+    hintCount++;
+    hintMarks.set(a.id, {start:performance.now(), until:performance.now() + 1300});
+    flash.set(a.id, {until:performance.now() + 1300, color:'#149b64'});
+    updateHud();
+  }
+
+  function startFromHome(){
+    if (gameState === 'countdown' || gameState === 'playing') return;
+    prepareStage();
+    gameState = 'countdown';
+    showScreen(Screen.COUNTDOWN);
+    let n = 3;
+    countdownText.textContent = String(n);
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(() => {
+      n -= 1;
+      if (n > 0) {
+        countdownText.textContent = String(n);
+        return;
+      }
+      clearInterval(countdownTimer);
+      countdownText.textContent = '開始';
+      setTimeout(startGameAfterCountdown, 320);
+    }, 1000);
+  }
+
+  function startGameAfterCountdown(){
+    if (gameState !== 'countdown') return;
+    showScreen(Screen.GAME);
+    requestAnimationFrame(() => {
+      fitCanvas();
+      draw();
+      gameStartAt = performance.now();
+      gameEndAt = 0;
+      gameState = 'playing';
+      updateHud();
+    });
+  }
+
+  function finishGameClear(){
+    if (gameState !== 'playing') return;
+    gameEndAt = performance.now();
+    gameState = 'ended';
+    isRetired = false;
+    wrongBubble.classList.remove('show');
+    setTimeout(() => showResultScreen('clear'), 180);
+  }
+
+  function retireGame(){
+    if (gameState !== 'playing') return;
+    gameEndAt = performance.now();
+    gameState = 'ended';
+    isRetired = true;
+    wrongBubble.classList.remove('show');
+    showResultScreen('retire');
+  }
+
+  function showResultScreen(type){
+    const raw = getRawTimeMs();
+    const penalty = getPenaltyMs();
+    const final = getFinalTimeMs();
+    resultTitle.textContent = type === 'clear' ? '結果：クリア' : '結果：リタイア';
+    resultScore.textContent = formatTime(final);
+    rawTimeText.textContent = formatTime(raw);
+    penaltyResultText.textContent = '+' + Math.round(penalty / 1000) + '秒';
+    wrongResultText.textContent = wrongCount + '回';
+    hintResultText.textContent = hintCount + '回';
+    scoreSubmitArea.hidden = type !== 'clear';
+    submitMessage.textContent = type === 'clear' ? '' : 'リタイアした記録はランキングに送信しません。';
+    showScreen(Screen.RESULT);
+    fetchBekutoruRanking(10);
+  }
+
+  async function submitBekutoruScore(){
+    if (scoreSubmitted) return;
+    if (isRetired) {
+      submitMessage.textContent = 'リタイアした記録は送信できません。';
+      return;
+    }
+    const name = String(playerNameInput.value || '').trim();
+    if (!name) {
+      submitMessage.textContent = '名前を入力してください。';
+      playerNameInput.focus();
+      return;
+    }
+    if (!supabaseClient) {
+      submitMessage.textContent = 'Supabaseに接続できません。URLとキーを確認してください。';
+      return;
+    }
+
+    const rawTimeMs = getRawTimeMs();
+    const finalTimeMs = getFinalTimeMs();
+    if (rawTimeMs <= 0 || finalTimeMs <= 0) {
+      submitMessage.textContent = 'タイムが不正です。';
+      return;
+    }
+
+    scoreSubmitted = true;
+    submitScoreButton.disabled = true;
+    submitMessage.textContent = '送信中...';
+
+    const { data, error } = await supabaseClient.rpc('submit_bekutoru_score', {
+      p_display_name: name.slice(0, 12),
+      p_final_time_ms: finalTimeMs,
+      p_raw_time_ms: rawTimeMs,
+      p_wrong_count: wrongCount,
+      p_hint_count: hintCount,
+      p_stage_key: currentStageKey,
+      p_retired: false
+    });
+
+    if (error) {
+      console.error(error);
+      scoreSubmitted = false;
+      submitScoreButton.disabled = false;
+      submitMessage.textContent = '送信に失敗しました。SQL設定を確認してください。';
+      return;
+    }
+
+    const row = Array.isArray(data) ? data[0] : data;
+    const newBest = row && (row.is_new_best === true || row.is_new_best === 'true');
+    submitMessage.textContent = newBest ? '送信しました。ベスト更新です。' : '送信しました。';
+    showToast('ランキングに送信しました');
+    fetchBekutoruRanking(10);
+  }
+
+  async function fetchBekutoruRanking(limit = 10){
+    if (!supabaseClient) {
+      rankingList.innerHTML = '<div class="message">Supabase未接続です。</div>';
+      return;
+    }
+    rankingList.innerHTML = '<div class="message">読み込み中...</div>';
+    const { data, error } = await supabaseClient.rpc('get_best_score_ranking', {
+      p_game_slug: CONFIG.GAME_SLUG,
+      p_limit: limit
+    });
+    if (error) {
+      console.error(error);
+      rankingList.innerHTML = '<div class="message">ランキングを読み込めませんでした。</div>';
+      return;
+    }
+    const rows = data || [];
+    if (!rows.length) {
+      rankingList.innerHTML = '<div class="message">まだ記録がありません。</div>';
+      return;
+    }
+    rankingList.innerHTML = rows.map((row, index) => {
+      const rank = row.rank || row.ranking || index + 1;
+      const name = escapeHtml(row.display_name || row.player_name || row.name || '名無し');
+      const score = row.best_score ?? row.score ?? row.result_best_score ?? row.first_score ?? 0;
+      return '<div class="rank-row"><div class="rank">' + rank + '</div><div class="name">' + name + '</div><div class="score">' + formatScoreFromSupabase(score) + '</div></div>';
+    }).join('');
+  }
+
+  function formatScoreFromSupabase(score){
+    const n = Number(score || 0);
+    return (n / 1000).toFixed(3) + '秒';
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, (s) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+
+  function buildGameShareText(){
+    return [
+      'ベク取る',
+      '🐼を全部抜こう！',
+      CONFIG.GAME_URL
+    ].join('\n');
+  }
+
+  async function copyGameShareText(){
+    try {
+      await navigator.clipboard.writeText(buildGameShareText());
+      showToast('ゲームのシェア文をコピーしました');
+    } catch (error) {
+      console.error(error);
+      showToast('コピーできませんでした');
+    }
+  }
+
+  function buildShareText(){
+    if (isRetired) {
+      return [
+        CONFIG.GAME_TITLE_DISPLAY,
+        '結果：リタイア',
+        'ここまでの時間：' + formatTime(getFinalTimeMs()),
+        CONFIG.GAME_URL
+      ].join('\n');
+    }
+    return [
+      CONFIG.GAME_TITLE_DISPLAY,
+      '結果：クリア',
+      '最終タイム：' + formatTime(getFinalTimeMs()),
+      '実時間：' + formatTime(getRawTimeMs()),
+      '間違い：' + wrongCount + '回',
+      'ヒント：' + hintCount + '回',
+      CONFIG.GAME_URL
+    ].join('\n');
+  }
+
+  async function copyShareText(){
+    const text = buildShareText();
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('結果をコピーしました');
+    } catch (error) {
+      console.error(error);
+      showToast('コピーできませんでした');
+    }
+  }
+
+  function retryFromResult(){
+    gameState = 'idle';
+    startFromHome();
+  }
+
+  function backHomeFromResult(){
+    gameState = 'idle';
+    prepareStage();
+    showScreen(Screen.HOME);
+  }
+
+  document.getElementById('startButton').addEventListener('click', startFromHome);
+  document.getElementById('rulesButton').addEventListener('click', () => showScreen(Screen.RULES));
+  document.getElementById('shareGameButton').addEventListener('click', copyGameShareText);
+  document.getElementById('backHomeFromRules').addEventListener('click', () => showScreen(Screen.HOME));
+  document.getElementById('retireButton').addEventListener('click', retireGame);
+  document.getElementById('hintButton').addEventListener('click', useHint);
+  document.getElementById('submitScoreButton').addEventListener('click', submitBekutoruScore);
+  document.getElementById('shareResultButton').addEventListener('click', copyShareText);
+  document.getElementById('retryButton').addEventListener('click', retryFromResult);
+  document.getElementById('homeButtonFromResult').addEventListener('click', backHomeFromResult);
+  cv.addEventListener('pointerdown', (event) => { event.preventDefault(); handleBoardPointer(event); }, {passive:false});
+  window.addEventListener('resize', () => { if (currentScreen === Screen.GAME) { fitCanvas(); draw(); } });
+  document.addEventListener('visibilitychange', () => {
+    // 一時停止は入れない。画面を離れている時間もタイムに含める。
+  });
+
+  function loop(){
+    if (gameState === 'playing') updateHud();
+    if (currentScreen === Screen.GAME) draw();
+    requestAnimationFrame(loop);
+  }
+
+  preventMobileBrowserGestures();
+  loadSupabaseScript();
+  prepareStage();
+  showScreen(Screen.HOME);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
