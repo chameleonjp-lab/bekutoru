@@ -141,7 +141,7 @@
       <div class="button-stack">
         <button class="btn primary" id="startButton" type="button">ゲーム開始</button>
         <button class="btn ghost" id="rulesButton" type="button">ルール説明</button>
-        <button class="btn ghost" id="shareGameButton" type="button">ゲームをシェア</button>
+        <button class="btn ghost common-x-share" id="shareGameButton" type="button">Xでシェア</button><a class="common-ranking-link" href="https://chameleonjp-lab.github.io/chameleonjp_lab/ranking.html?game=bekutoru">ランキング</a>
         <a class="lab-link" href="https://chameleonjp-lab.github.io/chameleonjp_lab/" rel="noopener">その他のゲーム</a>
       </div>
     </div>
@@ -225,7 +225,7 @@
       </div>
 
       <div class="button-stack">
-        <button class="btn ghost" id="shareResultButton" type="button">結果をシェア</button>
+        <button class="btn ghost common-x-share" id="shareResultButton" type="button">Xでシェア</button><a class="common-ranking-link" href="https://chameleonjp-lab.github.io/chameleonjp_lab/ranking.html?game=bekutoru">ランキング</a>
         <button class="btn primary" id="retryButton" type="button">もう一度</button>
         <button class="btn ghost" id="homeButtonFromResult" type="button">ホームへ</button>
         <a class="lab-link" href="https://chameleonjp-lab.github.io/chameleonjp_lab/" rel="noopener">その他のゲーム</a>
@@ -234,6 +234,63 @@
   </section>
 </div>
 <div class="toast" id="toast"></div>
+
+<style>
+button.common-x-share { background:#000 !important; color:#fff !important; border:1px solid #555; white-space:normal; overflow-wrap:anywhere; min-height:44px; padding:12px 16px; line-height:1.4; }
+.common-ranking-link { display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; min-height:44px; padding:12px 16px; border:1px solid currentColor; border-radius:10px; color:inherit; text-decoration:none; white-space:normal; overflow-wrap:anywhere; line-height:1.4; }
+#commonShareFallback { box-sizing:border-box; width:min(92vw,32rem); max-height:85dvh; overflow:auto; border:1px solid #777; border-radius:12px; padding:20px; background:#fff; color:#111; }
+#commonShareFallback::backdrop { background:#0009; }
+#commonShareFallback textarea { box-sizing:border-box; width:100%; min-height:160px; padding:10px; font:16px/1.5 sans-serif; color:#111; background:#fff; user-select:text; -webkit-user-select:text; }
+#commonShareFallback button { min-height:44px; margin:6px; padding:10px 16px; white-space:normal; color:#fff; background:#222; }
+</style>
+<dialog id="commonShareFallback" aria-labelledby="commonShareHeading">
+  <h2 id="commonShareHeading">共有文をコピー</h2>
+  <p>Xを開けない場合は、本文とURLをコピーして投稿できます。</p>
+  <textarea id="commonShareText" readonly aria-label="共有する本文とURL"></textarea>
+  <p id="commonShareStatus" role="status" aria-live="polite"></p>
+  <button id="commonShareCopy" type="button">コピー</button>
+  <button id="commonShareClose" type="button">閉じる</button>
+</dialog>
+<script>
+(() => {
+  'use strict';
+  const dialog = document.getElementById('commonShareFallback');
+  const field = document.getElementById('commonShareText');
+  const status = document.getElementById('commonShareStatus');
+  window.openGameShareX = (text) => {
+    const body = String(text);
+    const intent = new URL('https://x.com/intent/post');
+    intent.searchParams.set('text', body);
+    let popup;
+    try {
+      popup = window.open('', '_blank');
+      if (popup) {
+        popup.opener = null;
+        popup.location.replace(intent.href);
+        return;
+      }
+    } catch (_) {
+      try { if (popup) popup.close(); } catch (_) {}
+    }
+    field.value = body;
+    status.textContent = '';
+    if (!dialog.open) dialog.showModal();
+    field.focus();
+    field.select();
+  };
+  document.getElementById('commonShareCopy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(field.value);
+      status.textContent = 'コピーしました。投稿はXで確認してください。';
+    } catch (_) {
+      field.focus();
+      field.select();
+      status.textContent = '本文を選択して手動でコピーしてください。';
+    }
+  });
+  document.getElementById('commonShareClose').addEventListener('click', () => dialog.close());
+})();
+</script>
 
 <script>
 'use strict';
@@ -1028,7 +1085,7 @@
     if (type === 'clear') {
       submitBekutoruScore();
     } else {
-      fetchBekutoruRanking(10);
+      fetchBekutoruRanking(30);
     }
   }
 
@@ -1046,7 +1103,7 @@
     if (scoreSubmitted) return;
     if (isRetired) {
       submitMessage.textContent = 'リタイアした記録はランキングに送信しません。';
-      fetchBekutoruRanking(10);
+      fetchBekutoruRanking(30);
       return;
     }
 
@@ -1054,7 +1111,7 @@
     const name = String(savedName || playerNameInput.value || '').trim();
     if (!name) {
       submitMessage.textContent = '名前が未登録です。ホームから登録してください。';
-      fetchBekutoruRanking(10);
+      fetchBekutoruRanking(30);
       return;
     }
     playerNameInput.value = name;
@@ -1062,7 +1119,7 @@
     const ready = await ensureSupabaseClientReady();
     if (!ready) {
       submitMessage.textContent = 'ランキング送信に失敗しました。通信環境を確認してください。';
-      fetchBekutoruRanking(10);
+      fetchBekutoruRanking(30);
       return;
     }
 
@@ -1070,7 +1127,7 @@
     const finalTimeMs = getFinalTimeMs();
     if (rawTimeMs <= 0 || finalTimeMs <= 0) {
       submitMessage.textContent = 'タイムが不正です。';
-      fetchBekutoruRanking(10);
+      fetchBekutoruRanking(30);
       return;
     }
 
@@ -1090,7 +1147,7 @@
       scoreSubmitted = false;
       if (submitScoreButton) submitScoreButton.disabled = false;
       submitMessage.textContent = 'ランキング送信に失敗しました。少し時間を置いてもう一度遊んでください。';
-      fetchBekutoruRanking(10);
+      fetchBekutoruRanking(30);
       return;
     }
 
@@ -1105,10 +1162,10 @@
       showToast('ランキングに送信しました');
     }
 
-    fetchBekutoruRanking(10);
+    fetchBekutoruRanking(30);
   }
 
-  async function fetchBekutoruRanking(limit = 10){
+  async function fetchBekutoruRanking(limit = 30){
     if (!supabaseClient) {
       rankingList.innerHTML = '<div class="message">Supabase未接続です。</div>';
       return;
@@ -1129,7 +1186,7 @@
       return;
     }
     rankingList.innerHTML = rows.map((row, index) => {
-      const rank = row.rank || row.ranking || index + 1;
+      const rank = row.rank_no ?? row.rank ?? row.ranking ?? index + 1;
       const name = escapeHtml(row.display_name || row.player_name || row.name || '名無し');
       const score = row.best_score ?? row.score ?? row.result_best_score ?? row.first_score ?? 0;
       return '<div class="rank-row"><div class="rank">' + rank + '</div><div class="name">' + name + '</div><div class="score">' + formatScoreFromSupabase(score) + '</div></div>';
@@ -1153,15 +1210,7 @@
     ].join('\n');
   }
 
-  async function copyGameShareText(){
-    try {
-      await navigator.clipboard.writeText(buildGameShareText());
-      showToast('ゲームのシェア文をコピーしました');
-    } catch (error) {
-      console.error(error);
-      showToast('コピーできませんでした');
-    }
-  }
+  function copyGameShareText(){ window.openGameShareX(buildGameShareText()); }
 
   function buildShareText(){
     if (isRetired) {
@@ -1183,16 +1232,7 @@
     ].join('\n');
   }
 
-  async function copyShareText(){
-    const text = buildShareText();
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast('結果をコピーしました');
-    } catch (error) {
-      console.error(error);
-      showToast('コピーできませんでした');
-    }
-  }
+  function copyShareText(){ window.openGameShareX(buildShareText()); }
 
   function retryFromResult(){
     gameState = 'idle';
