@@ -130,6 +130,9 @@
     .home-title{font-size:32px;}.card{padding:16px;border-radius:24px;gap:12px;}
     .score-main{font-size:36px;}
   }
+  select{font:inherit;min-height:44px;min-width:0;max-width:100%;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+  input,textarea{user-select:text;-webkit-user-select:text}.sound-controls{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center}.sound-controls input{padding:0}
+  .countdown-num{font-size:clamp(36px,14vw,88px);overflow-wrap:anywhere;line-height:1.2}.home-title,.btn,.lab-link,.detail-item,.rank-row,.hud-pill,.retire-btn{overflow-wrap:anywhere;white-space:normal;min-width:0}.btn.small,.retire-btn{min-height:44px;height:auto}.game-hud{height:auto;min-height:44px;grid-template-columns:minmax(60px,1fr) minmax(100px,1.5fr) minmax(72px,1fr)}.hud-pill{height:auto;min-height:36px;padding:4px}.hud-pill .sub{font-size:12px}.rank-row{grid-template-columns:32px minmax(0,1fr) minmax(70px,1fr)}.rank-row .name{white-space:normal;overflow-wrap:anywhere}.message,.lead,.detail-item .label{font-size:14px}.home-title{font-size:clamp(28px,8vw,38px)}.toast{max-width:92vw;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -138,6 +141,13 @@
     <div class="card">
       <h1 class="home-title">🐼ベク取る🐼</h1>
       <p class="lead">可愛い🐼を逃がしてあげよう！</p>
+      <label for="languageSelect">言語</label><select id="languageSelect"></select>
+      <label for="playerNameStartInput">名前（任意・12文字まで）</label>
+      <input id="playerNameStartInput" autocomplete="nickname" enterkeyhint="done" aria-describedby="nameDisclosure" placeholder="名前" />
+      <p class="lead" id="nameDisclosure">名前を入力すると、名前と記録がランキングに公開されます。空欄でも遊べます。</p>
+      <div class="message" id="nameRegisterMessage" role="status"></div>
+      <div class="sound-controls"><span>効果音</span><button class="btn small" id="soundToggle" type="button"></button><label for="soundVolume">音量</label><input id="soundVolume" type="range" min="0" max="1" step="0.05" /></div>
+      <button class="btn ghost" id="pendingRetry" type="button" hidden>記録の送信を再試行</button>
       <div class="button-stack">
         <button class="btn primary" id="startButton" type="button">ゲーム開始</button>
         <button class="btn ghost" id="rulesButton" type="button">ルール説明</button>
@@ -157,21 +167,6 @@
         間違えると +5秒、ヒントは +15秒。
       </div>
       <button class="btn primary" id="backHomeFromRules" type="button">戻る</button>
-    </div>
-  </section>
-
-  <section class="screen" data-screen="name" hidden>
-    <div class="card">
-      <h2 class="result-title">名前登録</h2>
-      <p class="lead">ランキングに使う名前です。ゲーム開始前に登録してください。</p>
-      <div class="input-row" style="grid-template-columns:1fr;">
-        <input id="playerNameStartInput" maxlength="12" autocomplete="nickname" placeholder="名前" />
-      </div>
-      <div class="message" id="nameRegisterMessage"></div>
-      <div class="button-stack">
-        <button class="btn primary" id="confirmNameButton" type="button">この名前で開始</button>
-        <button class="btn ghost" id="backHomeFromName" type="button">戻る</button>
-      </div>
     </div>
   </section>
 
@@ -214,14 +209,8 @@
       </div>
 
       <div id="scoreSubmitArea">
-        <input id="playerNameInput" maxlength="12" autocomplete="nickname" placeholder="名前" hidden />
-        <button id="submitScoreButton" type="button" hidden>送信</button>
-        <div class="message" id="submitMessage"></div>
-      </div>
-
-      <div class="ranking" id="rankingBox">
-        <h3>ランキング</h3>
-        <div class="ranking-list" id="rankingList"><div class="message">読み込み中...</div></div>
+        <button class="btn ghost" id="submitScoreButton" type="button" hidden>記録の送信を再試行</button>
+        <div class="message" id="submitMessage" role="status"></div>
       </div>
 
       <div class="button-stack">
@@ -230,6 +219,13 @@
         <button class="btn ghost" id="homeButtonFromResult" type="button">ホームへ</button>
         <a class="lab-link" href="https://chameleonjp-lab.github.io/chameleonjp_lab/" rel="noopener">その他のゲーム</a>
       </div>
+      <div class="ranking" id="rankingBox">
+        <h3>ランキング 上位30名</h3>
+        <div class="ranking-list" id="rankingList"><div class="message">読み込み中...</div></div>
+        <button class="btn ghost" id="rankingRetry" type="button">ランキングを再取得</button>
+      </div>
+
+
     </div>
   </section>
 </div>
@@ -251,1027 +247,1238 @@ button.common-x-share { background:#000 !important; color:#fff !important; borde
   <button id="commonShareCopy" type="button">コピー</button>
   <button id="commonShareClose" type="button">閉じる</button>
 </dialog>
+<script id="localeData" type="application/json">{"source":["コピーしました。投稿はXで確認してください。","本文を選択して手動でコピーしてください。","オン","オフ","ベク取る","🐼ベク取る🐼","🐼違いましたね","🐼そうじゃなくて","🐼松のや食べて落ち着こう","🐼間違えました","🐼あ、そっちか","🐼ほろ酔い飲んでる？","🐼あれ、なんで","🐼大丈夫ですか？","🐼全然分かんない","🐼見てましたか？","🐼もう一回やります？","加算 +{0}秒","名前は12文字以内にしてください。","開始","結果：クリア","結果：リタイア","+{0}秒","{0}回","リタイアした記録はランキングに送信しません。","名前なしのプレイです。記録は公開しません。","記録は送信待ちです。通信回復時に同じ記録を再送します。","ランキング送信中...","ランキングに自動送信しました。","送信に失敗しました。結果を保存しています。再試行できます。","記録は受け付けられませんでした。結果は保存しています。","ランキングを読み込めませんでした。","まだ記録がありません。","読み込み中...","{0}秒","可愛い🐼を逃がしてあげよう！","最終タイム：{0}","実時間：{0}","間違い：{0}回","ヒント：{0}回","言語","名前（任意・12文字まで）","名前を入力すると、名前と記録がランキングに公開されます。空欄でも遊べます。","効果音","音量","記録の送信を再試行","ゲーム開始","ルール説明","Xでシェア","ランキング","その他のゲーム","🐼が先頭です。","先が端まで空いている矢だけ抜けます。","全部抜いたらクリア。","間違えると +5秒、ヒントは +15秒。","戻る","盤面はまだ見えません","残り","リタイア","ヒント","実時間","加算","+0秒","間違い","0回","もう一度","ホームへ","ランキング 上位30名","ランキングを再取得","共有文をコピー","Xを開けない場合は、本文とURLをコピーして投稿できます。","コピー","閉じる","名前","共有する本文とURL"],"catalogs":{"ja":["コピーしました。投稿はXで確認してください。","本文を選択して手動でコピーしてください。","オン","オフ","ベク取る","🐼ベク取る🐼","🐼違いましたね","🐼そうじゃなくて","🐼松のや食べて落ち着こう","🐼間違えました","🐼あ、そっちか","🐼ほろ酔い飲んでる？","🐼あれ、なんで","🐼大丈夫ですか？","🐼全然分かんない","🐼見てましたか？","🐼もう一回やります？","加算 +{0}秒","名前は12文字以内にしてください。","開始","結果：クリア","結果：リタイア","+{0}秒","{0}回","リタイアした記録はランキングに送信しません。","名前なしのプレイです。記録は公開しません。","記録は送信待ちです。通信回復時に同じ記録を再送します。","ランキング送信中...","ランキングに自動送信しました。","送信に失敗しました。結果を保存しています。再試行できます。","記録は受け付けられませんでした。結果は保存しています。","ランキングを読み込めませんでした。","まだ記録がありません。","読み込み中...","{0}秒","可愛い🐼を逃がしてあげよう！","最終タイム：{0}","実時間：{0}","間違い：{0}回","ヒント：{0}回","言語","名前（任意・12文字まで）","名前を入力すると、名前と記録がランキングに公開されます。空欄でも遊べます。","効果音","音量","記録の送信を再試行","ゲーム開始","ルール説明","Xでシェア","ランキング","その他のゲーム","🐼が先頭です。","先が端まで空いている矢だけ抜けます。","全部抜いたらクリア。","間違えると +5秒、ヒントは +15秒。","戻る","盤面はまだ見えません","残り","リタイア","ヒント","実時間","加算","+0秒","間違い","0回","もう一度","ホームへ","ランキング 上位30名","ランキングを再取得","共有文をコピー","Xを開けない場合は、本文とURLをコピーして投稿できます。","コピー","閉じる","名前","共有する本文とURL"],"en":["Copied. Review your post on X.","Select the text and copy it manually.","On","Off","Panda Pull","🐼Panda Pull🐼","🐼Not quite!","🐼Not that way.","🐼Take a break with a meal at Matsunoya.","🐼That was a mistake.","🐼Oh, that way?","🐼Feeling a little tipsy?","🐼Huh? Why?","🐼Are you all right?","🐼I have no idea.","🐼Were you watching?","🐼Want another try?","Penalty +{0} s","Use a name of 12 characters or fewer.","Start","Result: Cleared","Result: Retired","+{0} s","{0} times","Retired runs are not submitted to the ranking.","You played without a name. This result will stay private.","Your result is waiting to send. The same result will be retried when the connection returns.","Sending to the ranking...","Your result was submitted automatically.","Sending failed. Your result is saved. You can retry.","The result was not accepted. Your result is saved.","The ranking could not be loaded.","No records yet.","Loading...","{0} s","Help the cute 🐼 escape!","Final time: {0}","Elapsed time: {0}","Mistakes: {0}","Hints: {0}","Language","Name (optional, up to 12 characters)","Enter a name to publish your name and result in the ranking. You can play with this field blank.","Sound effects","Volume","Retry sending results","Start game","How to play","Share on X","Ranking","Other games","🐼 marks the front of each arrow.","You can pull an arrow out only if the path ahead is clear all the way to the edge.","Remove every arrow to clear the board.","Each mistake adds 5 seconds. Each hint adds 15 seconds.","Back","The board is still hidden","Remaining","Retire","Hint","Elapsed time","Penalty","+0 s","Mistakes","0 times","Play again","Home","Ranking: top 30 players","Reload ranking","Copy share text","If X does not open, copy the text and URL to post them yourself.","Copy","Close","Name","Text and URL to share"],"es":["Copiado. Revisa tu publicación en X.","Selecciona el texto y cópialo manualmente.","Activado","Desactivado","Panda Pull","🐼Panda Pull🐼","🐼No era esa.","🐼Por ahí no.","🐼Vamos a comer a Matsunoya y calmarnos.","🐼Me equivoqué.","🐼Ah, ¿por ahí?","🐼¿Un poco achispado?","🐼¿Eh? ¿Por qué?","🐼¿Todo bien?","🐼No tengo ni idea.","🐼¿Estabas mirando?","🐼¿Otro intento?","Penalización +{0} s","Usa un nombre de hasta 12 caracteres.","Empezar","Resultado: completado","Resultado: abandono","+{0} s","{0} veces","Las partidas abandonadas no se envían a la clasificación.","Has jugado sin nombre. Este resultado no se publicará.","El resultado está pendiente de envío. Se reenviará el mismo resultado cuando vuelva la conexión.","Enviando a la clasificación...","El resultado se envió automáticamente a la clasificación.","El envío falló. El resultado está guardado. Puedes reintentarlo.","El resultado no se aceptó. Sigue guardado.","No se pudo cargar la clasificación.","Aún no hay resultados.","Cargando...","{0} s","¡Ayuda al adorable 🐼 a escapar!","Tiempo final: {0}","Tiempo transcurrido: {0}","Errores: {0}","Pistas: {0}","Idioma","Nombre (opcional, hasta 12 caracteres)","Si introduces un nombre, el nombre y tu resultado serán públicos en la clasificación. También puedes jugar sin nombre.","Efectos de sonido","Volumen","Reintentar envío del resultado","Empezar partida","Cómo jugar","Compartir en X","Clasificación","Otros juegos","🐼 marca la punta de cada flecha.","Solo puedes sacar una flecha si el camino que tiene delante está libre hasta el borde.","Saca todas las flechas para completar el tablero.","Cada error añade 5 segundos y cada pista añade 15 segundos.","Atrás","El tablero sigue oculto","Restantes","Abandonar","Pista","Tiempo transcurrido","Penalización","+0 s","Errores","0 veces","Volver a jugar","Inicio","Clasificación: 30 mejores jugadores","Recargar clasificación","Copiar texto para compartir","Si X no se abre, copia el texto y la URL para publicarlos tú mismo.","Copiar","Cerrar","Nombre","Texto y URL para compartir"],"pt-BR":["Copiado. Confira sua publicação no X.","Selecione o texto e copie manualmente.","Ativado","Desativado","Panda Pull","🐼Panda Pull🐼","🐼Não era essa!","🐼Não é por aí.","🐼Vamos comer no Matsunoya e relaxar.","🐼Errei.","🐼Ah, por ali?","🐼Já está meio alegre?","🐼Ué? Por quê?","🐼Tudo bem?","🐼Não entendi nada.","🐼Você estava olhando?","🐼Mais uma tentativa?","Penalidade +{0} s","Use um nome de até 12 caracteres.","Começar","Resultado: concluído","Resultado: desistência","+{0} s","{0} vezes","Partidas abandonadas não são enviadas ao ranking.","Você jogou sem nome. Este resultado não será publicado.","O resultado aguarda envio. O mesmo resultado será reenviado quando a conexão voltar.","Enviando ao ranking...","O resultado foi enviado automaticamente ao ranking.","O envio falhou. O resultado está salvo. Você pode tentar novamente.","O resultado não foi aceito. Ele continua salvo.","Não foi possível carregar o ranking.","Ainda não há resultados.","Carregando...","{0} s","Ajude o adorável 🐼 a escapar!","Tempo final: {0}","Tempo decorrido: {0}","Erros: {0}","Dicas: {0}","Idioma","Nome (opcional, até 12 caracteres)","Se você inserir um nome, o nome e seu resultado serão públicos no ranking. Você também pode jogar sem nome.","Efeitos sonoros","Volume","Tentar enviar o resultado novamente","Iniciar jogo","Como jogar","Compartilhar no X","Ranking","Outros jogos","🐼 marca a ponta de cada seta.","Você só pode retirar uma seta se o caminho à frente dela estiver livre até a borda.","Retire todas as setas para concluir o tabuleiro.","Cada erro acrescenta 5 segundos e cada dica acrescenta 15 segundos.","Voltar","O tabuleiro ainda está oculto","Restantes","Desistir","Dica","Tempo decorrido","Penalidade","+0 s","Erros","0 vezes","Jogar novamente","Início","Ranking: 30 melhores jogadores","Recarregar ranking","Copiar texto de compartilhamento","Se o X não abrir, copie o texto e a URL para publicar por conta própria.","Copiar","Fechar","Nome","Texto e URL para compartilhar"],"zh-Hans":["已复制。请在 X 上确认发布内容。","请选择文字并手动复制。","开启","关闭","熊猫抽箭","🐼熊猫抽箭🐼","🐼不对哦。","🐼不是那样啦。","🐼去松之屋吃点东西，冷静一下吧。","🐼出错了。","🐼啊，是那边吗？","🐼有点微醺了吗？","🐼咦，为什么？","🐼还好吗？","🐼完全搞不懂。","🐼刚才有在看吗？","🐼再来一次吗？","加时 +{0}秒","名字请勿超过12个字符。","开始","结果：通关","结果：退出","+{0}秒","{0}次","退出的成绩不会提交到排行榜。","本局未填写名字，成绩不会公开。","成绩等待发送。网络恢复后会重试发送同一份成绩。","正在提交到排行榜……","成绩已自动提交。","发送失败。成绩已保存，可以重试。","成绩未被接受，已保存在本机。","无法加载排行榜。","暂无记录。","加载中……","{0}秒","帮助可爱的🐼逃出去吧！","最终用时：{0}","实际用时：{0}","失误：{0}次","提示：{0}次","语言","名字（选填，最多12个字符）","填写名字后，名字和成绩会在排行榜上公开。留空也能玩。","音效","音量","重试发送成绩","开始游戏","玩法说明","分享到 X","排行榜","其他游戏","🐼标记箭头的前端。","只有前方直到边缘都没有阻挡的箭头才能抽出。","抽出所有箭头即可通关。","每次失误加5秒，每次提示加15秒。","返回","棋盘暂时隐藏","剩余","退出本局","提示","实际用时","加时","+0秒","失误","0次","再玩一次","主页","排行榜：前30名","重新加载排行榜","复制分享内容","如果无法打开 X，可以复制文字和链接后自行发布。","复制","关闭","名字","要分享的文字和链接"],"fr":["Copié. Vérifie ta publication sur X.","Sélectionne le texte et copie-le manuellement.","Activé","Désactivé","Panda Pull","🐼Panda Pull🐼","🐼Pas tout à fait !","🐼Pas par là.","🐼Une pause chez Matsunoya pour se détendre ?","🐼C'était une erreur.","🐼Ah, par là ?","🐼Un peu pompette ?","🐼Hein ? Pourquoi ?","🐼Tout va bien ?","🐼Je n'y comprends rien.","🐼Tu regardais ?","🐼On réessaie ?","Pénalité +{0} s","Utilise un nom de 12 caractères maximum.","Commencer","Résultat : réussi","Résultat : abandon","+{0} s","{0} fois","Les parties abandonnées ne sont pas envoyées au classement.","Tu as joué sans nom. Ce résultat ne sera pas publié.","Le résultat attend d'être envoyé. Il sera renvoyé à l'identique au retour de la connexion.","Envoi au classement...","Le résultat a été envoyé automatiquement au classement.","L'envoi a échoué. Le résultat est conservé. Tu peux réessayer.","Le résultat n'a pas été accepté. Il est conservé.","Impossible de charger le classement.","Aucun résultat pour le moment.","Chargement...","{0} s","Aide cet adorable 🐼 à s'échapper !","Temps final : {0}","Temps écoulé : {0}","Erreurs : {0}","Indices : {0}","Langue","Nom (facultatif, 12 caractères maximum)","Si tu saisis un nom, ce nom et ton résultat seront publics dans le classement. Tu peux aussi jouer sans nom.","Effets sonores","Volume","Réessayer l'envoi du résultat","Lancer la partie","Comment jouer","Partager sur X","Classement","Autres jeux","🐼 indique la pointe de chaque flèche.","Tu peux retirer une flèche uniquement si le passage devant elle est libre jusqu'au bord.","Retire toutes les flèches pour terminer.","Chaque erreur ajoute 5 secondes, chaque indice 15 secondes.","Retour","Le plateau est encore caché","Restantes","Abandonner","Indice","Temps écoulé","Pénalité","+0 s","Erreurs","0 fois","Rejouer","Accueil","Classement : 30 meilleurs joueurs","Recharger le classement","Copier le texte de partage","Si X ne s'ouvre pas, copie le texte et l'URL pour les publier toi-même.","Copier","Fermer","Nom","Texte et URL à partager"],"de":["Kopiert. Prüfe deinen Beitrag auf X.","Wähle den Text aus und kopiere ihn manuell.","Ein","Aus","Panda Pull","🐼Panda Pull🐼","🐼Nicht ganz!","🐼Nicht so herum.","🐼Erst mal bei Matsunoya essen und durchatmen.","🐼Das war ein Fehler.","🐼Ach, da lang?","🐼Schon leicht beschwipst?","🐼Hä? Warum?","🐼Alles in Ordnung?","🐼Ich verstehe gar nichts.","🐼Hast du hingeschaut?","🐼Noch ein Versuch?","Strafe +{0} s","Verwende einen Namen mit höchstens 12 Zeichen.","Start","Ergebnis: geschafft","Ergebnis: abgebrochen","+{0} s","{0}-mal","Abgebrochene Partien werden nicht in die Rangliste eingetragen.","Du hast ohne Namen gespielt. Dieses Ergebnis wird nicht veröffentlicht.","Dein Ergebnis wartet auf den Versand. Dasselbe Ergebnis wird bei erneuter Verbindung nochmals gesendet.","Wird an die Rangliste gesendet...","Dein Ergebnis wurde automatisch in die Rangliste eingetragen.","Senden fehlgeschlagen. Dein Ergebnis ist gespeichert. Du kannst es erneut versuchen.","Das Ergebnis wurde nicht angenommen. Es bleibt gespeichert.","Die Rangliste konnte nicht geladen werden.","Noch keine Ergebnisse.","Wird geladen...","{0} s","Hilf dem süßen 🐼 zu entkommen!","Endzeit: {0}","Verstrichene Zeit: {0}","Fehler: {0}","Hinweise: {0}","Sprache","Name (optional, höchstens 12 Zeichen)","Wenn du einen Namen eingibst, werden Name und Ergebnis in der Rangliste veröffentlicht. Du kannst auch ohne Namen spielen.","Soundeffekte","Lautstärke","Ergebnis erneut senden","Spiel starten","Spielanleitung","Auf X teilen","Rangliste","Weitere Spiele","🐼 markiert die Spitze jedes Pfeils.","Du kannst einen Pfeil nur herausziehen, wenn der Weg vor ihm bis zum Rand frei ist.","Entferne alle Pfeile, um das Feld zu lösen.","Jeder Fehler kostet 5 Sekunden, jeder Hinweis 15 Sekunden.","Zurück","Das Spielfeld ist noch verborgen","Übrig","Abbrechen","Hinweis","Verstrichene Zeit","Strafe","+0 s","Fehler","0-mal","Noch einmal","Startseite","Rangliste: Beste 30 Spieler","Rangliste neu laden","Text zum Teilen kopieren","Falls X sich nicht öffnet, kopiere Text und URL, um sie selbst zu veröffentlichen.","Kopieren","Schließen","Name","Text und URL zum Teilen"],"ko":["복사했습니다. X에서 게시 내용을 확인하세요.","텍스트를 선택하여 직접 복사하세요.","켜짐","꺼짐","판다 화살 빼기","🐼판다 화살 빼기🐼","🐼아니었네요.","🐼그렇게 하는 게 아니에요.","🐼마쓰노야에서 밥 먹고 진정해요.","🐼실수했네요.","🐼아, 그쪽인가요?","🐼살짝 취했나요?","🐼어라, 왜죠?","🐼괜찮으세요?","🐼전혀 모르겠네요.","🐼보고 있었나요?","🐼한 번 더 할까요?","추가 시간 +{0}초","이름은 12자 이내로 입력하세요.","시작","결과: 클리어","결과: 중도 종료","+{0}초","{0}회","중도 종료한 기록은 순위에 등록하지 않습니다.","이름 없이 플레이했습니다. 기록을 공개하지 않습니다.","기록 전송 대기 중입니다. 연결이 복구되면 같은 기록을 다시 전송합니다.","순위에 전송 중...","기록을 자동으로 등록했습니다.","전송하지 못했습니다. 기록은 저장되어 있으며 다시 시도할 수 있습니다.","기록이 접수되지 않았습니다. 기록은 저장되어 있습니다.","순위를 불러오지 못했습니다.","아직 기록이 없습니다.","불러오는 중...","{0}초","귀여운 🐼가 탈출하도록 도와주세요!","최종 시간: {0}","실제 시간: {0}","실수: {0}회","힌트: {0}회","언어","이름 (선택 사항, 최대 12자)","이름을 입력하면 이름과 기록이 순위에 공개됩니다. 비워 두어도 플레이할 수 있습니다.","효과음","음량","기록 전송 다시 시도","게임 시작","게임 방법","X에 공유","순위","다른 게임","🐼는 화살의 앞부분입니다.","앞쪽에서 가장자리까지 막힌 곳이 없는 화살만 뺄 수 있습니다.","화살을 모두 빼면 클리어합니다.","실수하면 5초, 힌트를 쓰면 15초가 추가됩니다.","뒤로","아직 보드가 보이지 않습니다","남은 수","중도 종료","힌트","실제 시간","추가 시간","+0초","실수","0회","다시 플레이","홈","순위: 상위 30명","순위 다시 불러오기","공유 문구 복사","X가 열리지 않으면 텍스트와 URL을 복사하여 직접 게시할 수 있습니다.","복사","닫기","이름","공유할 텍스트와 URL"],"ru":["Скопировано. Проверьте публикацию в X.","Выделите текст и скопируйте его вручную.","Вкл.","Выкл.","Panda Pull","🐼Panda Pull🐼","🐼Не совсем!","🐼Не туда.","🐼Поешь в Matsunoya и успокойся.","🐼Это была ошибка.","🐼А, в ту сторону?","🐼Уже немного навеселе?","🐼Странно… почему?","🐼Всё в порядке?","🐼Ничего не понимаю.","🐼Ты смотрел?","🐼Попробуем ещё раз?","Штраф +{0} с","Имя должно содержать не более 12 символов.","Старт","Результат: пройдено","Результат: выход из игры","+{0} с","{0} раз","Результаты прерванных игр не отправляются в таблицу лидеров.","Вы играли без имени. Результат не будет опубликован.","Результат ожидает отправки. После восстановления связи он будет отправлен повторно с теми же данными.","Отправка в таблицу лидеров…","Результат отправлен автоматически.","Не удалось отправить результат. Он сохранён, можно повторить попытку.","Результат не был принят. Он сохранён.","Не удалось загрузить таблицу лидеров.","Результатов пока нет.","Загрузка…","{0} с","Помогите милым 🐼 выбраться!","Итоговое время: {0}","Время игры: {0}","Ошибки: {0}","Подсказки: {0}","Язык","Имя (необязательно, до 12 символов)","Если вы введёте имя, оно и ваш результат будут опубликованы в таблице лидеров. Можно играть и без имени.","Звуковые эффекты","Громкость","Повторить отправку результата","Начать игру","Правила","Поделиться в X","Таблица лидеров","Другие игры","🐼 находится впереди.","Можно убрать только стрелку, перед которой свободен путь до края поля.","Уберите все стрелки, чтобы пройти игру.","За ошибку добавляется 5 секунд, за подсказку — 15 секунд.","Назад","Поле пока скрыто","Осталось","Выйти из игры","Подсказка","Время игры","Штраф","+0 с","Ошибки","0 раз","Ещё раз","На главную","30 лучших игроков","Обновить таблицу лидеров","Скопировать текст публикации","Если X не открывается, скопируйте текст и ссылку и опубликуйте их самостоятельно.","Копировать","Закрыть","Имя","Текст и ссылка для публикации"],"it":["Copiato. Controlla il post su X.","Seleziona il testo e copialo manualmente.","Attivo","Disattivo","Panda Pull","🐼Panda Pull🐼","🐼Non proprio!","🐼Non da quella parte.","🐼Una pausa da Matsunoya per rilassarci?","🐼Ho sbagliato.","🐼Ah, da quella parte?","🐼Sei un po' brillo?","🐼Eh? Perché?","🐼Tutto bene?","🐼Non ci capisco niente.","🐼Stavi guardando?","🐼Vuoi riprovare?","Penalità +{0} s","Usa un nome di massimo 12 caratteri.","Inizia","Risultato: completato","Risultato: abbandonato","+{0} s","{0} volte","Le partite abbandonate non vengono inviate alla classifica.","Hai giocato senza nome. Questo risultato non sarà pubblicato.","Il risultato è in attesa di invio. Lo stesso risultato verrà reinviato al ritorno della connessione.","Invio alla classifica...","Il risultato è stato inviato automaticamente alla classifica.","Invio non riuscito. Il risultato è salvato. Puoi riprovare.","Il risultato non è stato accettato. Rimane salvato.","Impossibile caricare la classifica.","Nessun risultato per ora.","Caricamento...","{0} s","Aiuta il tenero 🐼 a scappare!","Tempo finale: {0}","Tempo trascorso: {0}","Errori: {0}","Suggerimenti: {0}","Lingua","Nome (facoltativo, massimo 12 caratteri)","Se inserisci un nome, il nome e il risultato saranno pubblici in classifica. Puoi giocare anche senza nome.","Effetti sonori","Volume","Riprova a inviare il risultato","Inizia partita","Come giocare","Condividi su X","Classifica","Altri giochi","🐼 indica la punta di ogni freccia.","Puoi estrarre una freccia solo se il percorso davanti è libero fino al bordo.","Rimuovi tutte le frecce per completare il tabellone.","Ogni errore aggiunge 5 secondi, ogni suggerimento 15 secondi.","Indietro","Il tabellone è ancora nascosto","Rimanenti","Abbandona","Suggerimento","Tempo trascorso","Penalità","+0 s","Errori","0 volte","Gioca ancora","Inizio","Classifica: migliori 30 giocatori","Ricarica classifica","Copia testo da condividere","Se X non si apre, copia il testo e l'URL per pubblicarli tu.","Copia","Chiudi","Nome","Testo e URL da condividere"],"zh-Hant":["已複製。請在 X 上確認貼文內容。","請選取文字並手動複製。","開啟","關閉","熊貓抽箭","🐼熊貓抽箭🐼","🐼不對喔。","🐼不是那樣啦。","🐼去松之屋吃點東西，冷靜一下吧。","🐼出錯了。","🐼啊，是那邊嗎？","🐼有點微醺了嗎？","🐼咦，為什麼？","🐼還好嗎？","🐼完全搞不懂。","🐼剛才有在看嗎？","🐼再來一次嗎？","加時 +{0}秒","名字請勿超過12個字元。","開始","結果：過關","結果：退出","+{0}秒","{0}次","退出的成績不會提交至排行榜。","本局未填寫名字，成績不會公開。","成績等待傳送。網路恢復後會重試傳送同一份成績。","正在提交至排行榜……","成績已自動提交。","傳送失敗。成績已儲存，可以重試。","成績未被接受，已儲存在本機。","無法載入排行榜。","尚無紀錄。","載入中……","{0}秒","幫助可愛的🐼逃出去吧！","最終用時：{0}","實際用時：{0}","失誤：{0}次","提示：{0}次","語言","名字（選填，最多12個字元）","填寫名字後，名字和成績會在排行榜上公開。留空也能玩。","音效","音量","重試傳送成績","開始遊戲","玩法說明","分享到 X","排行榜","其他遊戲","🐼標記箭頭的前端。","只有前方直到邊緣都沒有阻擋的箭頭才能抽出。","抽出所有箭頭即可過關。","每次失誤加5秒，每次提示加15秒。","返回","棋盤暫時隱藏","剩餘","退出本局","提示","實際用時","加時","+0秒","失誤","0次","再玩一次","首頁","排行榜：前30名","重新載入排行榜","複製分享內容","如果無法開啟 X，可以複製文字和連結後自行發布。","複製","關閉","名字","要分享的文字和連結"],"id":["Disalin. Periksa kiriman Anda di X.","Pilih teks lalu salin secara manual.","Aktif","Nonaktif","Tarik Panda","🐼Tarik Panda🐼","🐼Belum tepat!","🐼Bukan begitu.","🐼Tenangkan diri dengan makan di Matsunoya.","🐼Salah, nih.","🐼Oh, ke sana?","🐼Sedikit mabuk, ya?","🐼Lho, kenapa?","🐼Kamu baik-baik saja?","🐼Aku benar-benar tidak tahu.","🐼Tadi memperhatikan?","🐼Mau coba lagi?","Penalti +{0} dtk","Gunakan nama dengan maksimal 12 karakter.","Mulai","Hasil: Selesai","Hasil: Berhenti","+{0} dtk","{0} kali","Hasil permainan yang dihentikan tidak dikirim ke peringkat.","Anda bermain tanpa nama. Hasil ini tidak akan dipublikasikan.","Hasil menunggu dikirim. Hasil yang sama akan dikirim ulang setelah koneksi pulih.","Mengirim ke peringkat...","Hasil telah dikirim secara otomatis.","Pengiriman gagal. Hasil disimpan dan dapat dikirim ulang.","Hasil tidak diterima. Hasil tetap disimpan.","Peringkat tidak dapat dimuat.","Belum ada catatan.","Memuat...","{0} dtk","Bantu 🐼 imut melarikan diri!","Waktu akhir: {0}","Waktu bermain: {0}","Kesalahan: {0} kali","Petunjuk: {0} kali","Bahasa","Nama (opsional, maksimal 12 karakter)","Jika Anda mengisi nama, nama dan hasil akan dipublikasikan di peringkat. Anda tetap bisa bermain tanpa mengisinya.","Efek suara","Volume","Coba kirim hasil lagi","Mulai permainan","Cara bermain","Bagikan di X","Peringkat","Permainan lain","🐼 menandai bagian depan panah.","Panah hanya bisa ditarik jika jalur di depannya kosong hingga tepi papan.","Tarik semua panah untuk menyelesaikan permainan.","Setiap kesalahan menambah 5 detik. Setiap petunjuk menambah 15 detik.","Kembali","Papan masih tersembunyi","Tersisa","Berhenti","Petunjuk","Waktu bermain","Penalti","+0 dtk","Kesalahan","0 kali","Main lagi","Beranda","Peringkat: 30 pemain teratas","Muat ulang peringkat","Salin teks berbagi","Jika X tidak terbuka, salin teks dan URL untuk mengirimkannya sendiri.","Salin","Tutup","Nama","Teks dan URL untuk dibagikan"],"tr":["Kopyalandı. Gönderiyi X'te kontrol edin.","Metni seçip elle kopyalayın.","Açık","Kapalı","Panda Pull","🐼Panda Pull🐼","🐼Pek olmadı!","🐼O tarafa değil.","🐼Matsunoya'da bir şeyler yiyip sakinleş.","🐼Yanlış oldu.","🐼Aa, o tarafa mı?","🐼Biraz çakırkeyif misin?","🐼Nasıl yani, neden?","🐼İyi misin?","🐼Hiçbir şey anlamıyorum.","🐼Bakıyor muydun?","🐼Bir daha deneyelim mi?","Ceza +{0} sn","Ad en fazla 12 karakter olmalıdır.","Başla","Sonuç: Tamamlandı","Sonuç: Oyun bırakıldı","+{0} sn","{0} kez","Bırakılan oyunların sonuçları sıralamaya gönderilmez.","Adsız oynadınız. Sonuç yayımlanmayacak.","Sonuç gönderilmeyi bekliyor. Bağlantı düzelince aynı kayıt yeniden gönderilecek.","Sıralamaya gönderiliyor…","Sonuç otomatik olarak gönderildi.","Gönderilemedi. Sonuç kaydedildi; yeniden deneyebilirsiniz.","Kayıt kabul edilmedi. Sonuç kaydedildi.","Sıralama yüklenemedi.","Henüz kayıt yok.","Yükleniyor…","{0} sn","Sevimli 🐼'ların çıkmasına yardım edin!","Son süre: {0}","Oynama süresi: {0}","Hata: {0} kez","İpucu: {0} kez","Dil","Ad (isteğe bağlı, en fazla 12 karakter)","Ad girerseniz adınız ve sonucunuz sıralamada yayımlanır. Adsız da oynayabilirsiniz.","Ses efektleri","Ses düzeyi","Kaydı yeniden gönder","Oyunu başlat","Kurallar","X'te paylaş","Sıralama","Diğer oyunlar","🐼 en öndedir.","Yalnızca önünde tahta kenarına kadar boş yol bulunan ok çıkarılabilir.","Tüm okları çıkarınca oyun tamamlanır.","Her hata +5 saniye, her ipucu +15 saniye ekler.","Geri","Tahta henüz görünmüyor","Kalan","Oyunu bırak","İpucu","Oynama süresi","Ceza","+0 sn","Hata","0 kez","Tekrar oyna","Ana sayfa","İlk 30 oyuncu","Sıralamayı yenile","Paylaşım metnini kopyala","X açılmazsa metni ve bağlantıyı kopyalayıp kendiniz paylaşabilirsiniz.","Kopyala","Kapat","Ad","Paylaşılacak metin ve bağlantı"],"vi":["Đã sao chép. Hãy kiểm tra bài đăng trên X.","Chọn văn bản rồi sao chép thủ công.","Bật","Tắt","Kéo Gấu Trúc","🐼Kéo Gấu Trúc🐼","🐼Chưa đúng rồi.","🐼Không phải như thế.","🐼Ăn một bữa ở Matsunoya cho bình tĩnh nhé.","🐼Nhầm rồi.","🐼À, phía đó sao?","🐼Hơi ngà ngà rồi à?","🐼Ơ, sao vậy?","🐼Bạn ổn chứ?","🐼Chẳng hiểu gì cả.","🐼Bạn có nhìn không đấy?","🐼Thử lại lần nữa nhé?","Cộng thêm +{0} giây","Tên không được dài quá 12 ký tự.","Bắt đầu","Kết quả: Hoàn thành","Kết quả: Bỏ cuộc","+{0} giây","{0} lần","Kết quả bỏ cuộc sẽ không được gửi lên bảng xếp hạng.","Bạn chơi không có tên. Kết quả này sẽ không được công khai.","Kết quả đang chờ gửi. Khi có kết nối, hệ thống sẽ gửi lại chính kết quả này.","Đang gửi lên bảng xếp hạng...","Kết quả đã được gửi tự động.","Gửi thất bại. Kết quả đã được lưu. Bạn có thể thử lại.","Kết quả không được chấp nhận. Kết quả vẫn được lưu.","Không tải được bảng xếp hạng.","Chưa có thành tích.","Đang tải...","{0} giây","Giúp 🐼 đáng yêu thoát ra nào!","Thời gian cuối cùng: {0}","Thời gian thực tế: {0}","Lỗi: {0} lần","Gợi ý: {0} lần","Ngôn ngữ","Tên (không bắt buộc, tối đa 12 ký tự)","Nếu nhập tên, tên và thành tích của bạn sẽ được công khai trên bảng xếp hạng. Bạn vẫn chơi được khi để trống.","Hiệu ứng âm thanh","Âm lượng","Thử gửi lại kết quả","Bắt đầu chơi","Cách chơi","Chia sẻ lên X","Bảng xếp hạng","Trò chơi khác","🐼 đánh dấu đầu mũi tên.","Chỉ kéo được mũi tên khi đường phía trước thông thoáng đến tận mép bàn.","Kéo hết các mũi tên để hoàn thành.","Mỗi lần chọn sai cộng 5 giây. Mỗi gợi ý cộng 15 giây.","Quay lại","Bàn chơi vẫn đang ẩn","Còn lại","Bỏ cuộc","Gợi ý","Thời gian thực tế","Cộng thêm","+0 giây","Lỗi","0 lần","Chơi lại","Trang chủ","Bảng xếp hạng: 30 người đứng đầu","Tải lại bảng xếp hạng","Sao chép nội dung chia sẻ","Nếu không mở được X, hãy sao chép văn bản và URL để tự đăng.","Sao chép","Đóng","Tên","Văn bản và URL để chia sẻ"],"th":["คัดลอกแล้ว ตรวจสอบโพสต์ใน X อีกครั้ง","เลือกข้อความแล้วคัดลอกด้วยตนเอง","เปิด","ปิด","ดึงแพนด้า","🐼ดึงแพนด้า🐼","🐼ยังไม่ใช่นะ","🐼ไม่ใช่แบบนั้น","🐼ไปกินข้าวที่ Matsunoya ให้ใจเย็นก่อนนะ","🐼พลาดแล้วล่ะ","🐼อ้าว ทางนั้นเหรอ","🐼กรึ่มนิดหน่อยหรือเปล่า","🐼เอ๊ะ ทำไมล่ะ","🐼ไหวไหม","🐼ไม่เข้าใจเลย","🐼เมื่อกี้ดูอยู่หรือเปล่า","🐼ลองอีกครั้งไหม","เวลาที่เพิ่ม +{0} วินาที","กรอกชื่อไม่เกิน 12 ตัวอักษร","เริ่ม","ผล: ผ่านแล้ว","ผล: ยุติการเล่น","+{0} วินาที","{0} ครั้ง","ผลที่ยุติการเล่นจะไม่ส่งเข้าตารางอันดับ","คุณเล่นโดยไม่ใส่ชื่อ ผลนี้จะไม่เผยแพร่","ผลกำลังรอส่ง เมื่อเชื่อมต่อได้จะลองส่งผลเดิมอีกครั้ง","กำลังส่งเข้าตารางอันดับ...","ส่งผลโดยอัตโนมัติแล้ว","ส่งไม่สำเร็จ บันทึกผลไว้แล้ว คุณลองส่งอีกครั้งได้","ระบบไม่รับผลนี้ แต่ยังบันทึกผลไว้","โหลดตารางอันดับไม่ได้","ยังไม่มีบันทึก","กำลังโหลด...","{0} วินาที","ช่วย 🐼 น่ารักหนีออกไปกันเถอะ!","เวลาสุดท้าย: {0}","เวลาที่ใช้จริง: {0}","เลือกผิด: {0} ครั้ง","คำใบ้: {0} ครั้ง","ภาษา","ชื่อ (ไม่บังคับ ไม่เกิน 12 ตัวอักษร)","หากกรอกชื่อ ชื่อและผลของคุณจะเผยแพร่ในตารางอันดับ เว้นว่างไว้ก็เล่นได้","เสียงเอฟเฟกต์","ระดับเสียง","ลองส่งผลอีกครั้ง","เริ่มเกม","วิธีเล่น","แชร์บน X","ตารางอันดับ","เกมอื่น","🐼 คือด้านหน้าของลูกศร","ดึงลูกศรได้เฉพาะเมื่อทางด้านหน้าว่างไปจนถึงขอบกระดาน","ดึงลูกศรออกทั้งหมดเพื่อผ่านด่าน","เลือกผิดแต่ละครั้งเพิ่ม 5 วินาที ใช้คำใบ้แต่ละครั้งเพิ่ม 15 วินาที","กลับ","ยังไม่แสดงกระดาน","เหลือ","ยุติการเล่น","คำใบ้","เวลาที่ใช้จริง","เวลาที่เพิ่ม","+0 วินาที","เลือกผิด","0 ครั้ง","เล่นอีกครั้ง","หน้าแรก","อันดับผู้เล่น 30 คนแรก","โหลดตารางอันดับใหม่","คัดลอกข้อความแชร์","หากเปิด X ไม่ได้ ให้คัดลอกข้อความและ URL ไปโพสต์ด้วยตนเอง","คัดลอก","ปิด","ชื่อ","ข้อความและ URL ที่จะแชร์"]}}</script>
+<script>
+/* Presentation only: internal game reasons/judgements and participant names stay unchanged. */
+(()=>{
+ const {source,catalogs}=JSON.parse(document.getElementById('localeData').textContent);
+ const indices=new Map(source.map((s,i)=>[s,i]));
+ const names={'ja':'日本語','en':'English','es':'Español','pt-BR':'Português (Brasil)','zh-Hans':'简体中文','fr':'Français','de':'Deutsch','ko':'한국어','ru':'Русский','it':'Italiano','zh-Hant':'繁體中文','id':'Bahasa Indonesia','tr':'Türkçe','vi':'Tiếng Việt','th':'ไทย'};
+ function match(value){const s=String(value||'').replace(/_/g,'-').toLowerCase();const exact=Object.keys(catalogs).find(k=>k.toLowerCase()===s);if(exact)return exact;if(/^zh-hans(?:-|$)/.test(s))return'zh-Hans';if(/^zh-hant(?:-|$)/.test(s))return'zh-Hant';if(s.startsWith('zh'))return /(?:^|-)(?:tw|hk|mo)(?:-|$)/.test(s)?'zh-Hant':'zh-Hans';if(s==='pt'||s.startsWith('pt-'))return'pt-BR';const base=s.split('-')[0];return Object.hasOwn(catalogs,base)?base:null;}
+ let stored;try{stored=localStorage.getItem('bekutoru:language')}catch(_){}
+ let lang=match(stored)||(navigator.languages||[navigator.language]).map(match).find(Boolean)||'en';
+ const staticNodes=[],attrs=[],bindings=new Map();
+ const dynamicIds=new Set(['countdownText','remainCount','timerText','penaltyText','wrongBubble','toast','resultTitle','resultScore','rawTimeText','penaltyResultText','wrongResultText','hintResultText','submitMessage','rankingList','commonShareStatus']);
+ const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+ while(walker.nextNode()){const node=walker.currentNode,p=node.parentElement;if(!p||p.closest('script,style,textarea,select')||dynamicIds.has(p.id))continue;const raw=node.nodeValue,key=raw.trim();if(indices.has(key))staticNodes.push({node,key,before:raw.slice(0,raw.indexOf(key)),after:raw.slice(raw.indexOf(key)+key.length)});}
+ for(const el of document.querySelectorAll('[placeholder],[aria-label]'))for(const a of ['placeholder','aria-label']){const key=el.getAttribute(a);if(indices.has(key))attrs.push({el,a,key});}
+ window.t=(key,...args)=>{const i=indices.get(key);return (i===undefined?String(key):catalogs[lang][i]).replace(/\{(\d+)\}/g,(_,n)=>String(args[Number(n)]??''));};
+ window.setText=(id,key,...args)=>{const node=document.getElementById(id);bindings.set(id,{key,args});node.textContent=t(key,...args);};
+ const select=document.getElementById('languageSelect');for(const [id,label]of Object.entries(names)){const o=document.createElement('option');o.value=id;o.textContent=label;select.append(o);}select.value=lang;
+ function render(){document.documentElement.lang=lang;document.title=t('ベク取る');for(const {node,key,before,after}of staticNodes)node.nodeValue=before+t(key)+after;for(const {el,a,key}of attrs)el.setAttribute(a,t(key));for(const[id,{key,args}]of bindings)document.getElementById(id).textContent=t(key,...args);}
+ select.addEventListener('change',()=>{if(!Object.hasOwn(catalogs,select.value))return;lang=select.value;try{localStorage.setItem('bekutoru:language',lang)}catch(_){}render();window.dispatchEvent(new Event('game-language-change'));});
+ window.gameLocale={match,language:()=>lang};render();
+})();
+</script>
 <script>
 (() => {
-  'use strict';
-  const dialog = document.getElementById('commonShareFallback');
-  const field = document.getElementById('commonShareText');
-  const status = document.getElementById('commonShareStatus');
-  window.openGameShareX = (text) => {
-    const body = String(text);
-    const intent = new URL('https://x.com/intent/post');
-    intent.searchParams.set('text', body);
-    let popup;
-    try {
-      popup = window.open('', '_blank');
-      if (popup) {
-        popup.opener = null;
-        popup.location.replace(intent.href);
-        return;
-      }
-    } catch (_) {
-      try { if (popup) popup.close(); } catch (_) {}
-    }
-    field.value = body;
-    status.textContent = '';
-    if (!dialog.open) dialog.showModal();
-    field.focus();
-    field.select();
-  };
-  document.getElementById('commonShareCopy').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(field.value);
-      status.textContent = 'コピーしました。投稿はXで確認してください。';
-    } catch (_) {
-      field.focus();
-      field.select();
-      status.textContent = '本文を選択して手動でコピーしてください。';
-    }
-  });
-  document.getElementById('commonShareClose').addEventListener('click', () => dialog.close());
+    'use strict';
+    const dialog = document.getElementById('commonShareFallback');
+    const field = document.getElementById('commonShareText');
+    const status = document.getElementById('commonShareStatus');
+    window.openGameShareX = (text) => {
+        const body = String(text);
+        const intent = new URL('https://x.com/intent/post');
+        intent.searchParams.set('text', body);
+        let popup;
+        try {
+            popup = window.open('', '_blank');
+            if (popup) {
+                popup.opener = null;
+                popup.location.replace(intent.href);
+                return;
+            }
+        }
+        catch (_) {
+            try {
+                if (popup)
+                    popup.close();
+            }
+            catch (_) { }
+        }
+        field.value = body;
+        status.textContent = '';
+        if (!dialog.open)
+            dialog.showModal();
+        field.focus();
+        field.select();
+    };
+    document.getElementById('commonShareCopy').addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(field.value);
+            status.textContent = t("\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\u3002\u6295\u7A3F\u306FX\u3067\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+        }
+        catch (_) {
+            field.focus();
+            field.select();
+            status.textContent = t("\u672C\u6587\u3092\u9078\u629E\u3057\u3066\u624B\u52D5\u3067\u30B3\u30D4\u30FC\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+        }
+    });
+    document.getElementById('commonShareClose').addEventListener('click', () => dialog.close());
 })();
 </script>
 
 <script>
-'use strict';
-(function(){
-  const CONFIG = {
-    GAME_SLUG: 'bekutoru',
-    GAME_TITLE: 'ベク取る',
-    GAME_TITLE_DISPLAY: '🐼ベク取る🐼',
-    GAME_URL: 'https://chameleonjp.codeberg.page/bekutoru/',
-    LAB_URL: 'https://chameleonjp-lab.github.io/chameleonjp_lab/',
-    PLAYER_NAME_KEY: 'bekutoru_player_name',
-    SUPABASE_URL: 'https://mlpnjgezrnhdxsxolyzj.supabase.co',
-    SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_drzcy0v97knU6FgjqSgBHw_0A9XPdFM'
-  };
-
-  const GW = 16;
-  const GH = 22;
-  const TARGET_ARROWS = 72;
-  const WRONG_PENALTY_MS = 5000;
-  const HINT_PENALTY_MS = 15000;
-  const BASE_STAGE_001 = [{"id":0,"cells":[{"x":13,"y":4},{"x":12,"y":4},{"x":12,"y":5},{"x":11,"y":5},{"x":11,"y":6},{"x":10,"y":6}]},{"id":1,"cells":[{"x":12,"y":7},{"x":12,"y":6},{"x":13,"y":6},{"x":13,"y":5},{"x":14,"y":5}]},{"id":2,"cells":[{"x":14,"y":7},{"x":13,"y":7},{"x":13,"y":8},{"x":12,"y":8},{"x":12,"y":9},{"x":11,"y":9}]},{"id":3,"cells":[{"x":11,"y":7},{"x":11,"y":8},{"x":10,"y":8},{"x":9,"y":8}]},{"id":4,"cells":[{"x":11,"y":3},{"x":11,"y":4},{"x":10,"y":4},{"x":10,"y":5},{"x":9,"y":5},{"x":9,"y":4}]},{"id":5,"cells":[{"x":10,"y":7},{"x":9,"y":7},{"x":9,"y":6},{"x":8,"y":6}]},{"id":6,"cells":[{"x":9,"y":9},{"x":10,"y":9},{"x":10,"y":10},{"x":11,"y":10}]},{"id":7,"cells":[{"x":14,"y":8},{"x":14,"y":9},{"x":13,"y":9},{"x":13,"y":10}]},{"id":8,"cells":[{"x":12,"y":10},{"x":12,"y":11},{"x":13,"y":11},{"x":14,"y":11}]},{"id":9,"cells":[{"x":8,"y":4},{"x":8,"y":5},{"x":7,"y":5},{"x":7,"y":6},{"x":6,"y":6}]},{"id":10,"cells":[{"x":8,"y":7},{"x":8,"y":8},{"x":8,"y":9},{"x":7,"y":9},{"x":7,"y":10},{"x":6,"y":10}]},{"id":11,"cells":[{"x":6,"y":8},{"x":7,"y":8},{"x":7,"y":7},{"x":6,"y":7},{"x":5,"y":7}]},{"id":12,"cells":[{"x":5,"y":6},{"x":5,"y":5},{"x":6,"y":5},{"x":6,"y":4},{"x":6,"y":3},{"x":5,"y":3}]},{"id":13,"cells":[{"x":13,"y":3},{"x":12,"y":3},{"x":12,"y":2},{"x":11,"y":2},{"x":10,"y":2},{"x":9,"y":2}]},{"id":14,"cells":[{"x":7,"y":4},{"x":7,"y":3},{"x":8,"y":3},{"x":8,"y":2}]},{"id":15,"cells":[{"x":8,"y":1},{"x":7,"y":1},{"x":7,"y":2},{"x":6,"y":2},{"x":5,"y":2},{"x":5,"y":1}]},{"id":16,"cells":[{"x":10,"y":11},{"x":9,"y":11},{"x":9,"y":10},{"x":8,"y":10},{"x":8,"y":11}]},{"id":17,"cells":[{"x":7,"y":0},{"x":8,"y":0},{"x":9,"y":0},{"x":9,"y":1},{"x":10,"y":1},{"x":10,"y":0}]},{"id":18,"cells":[{"x":14,"y":10},{"x":15,"y":10},{"x":15,"y":9},{"x":15,"y":8},{"x":15,"y":7}]},{"id":19,"cells":[{"x":6,"y":1},{"x":6,"y":0},{"x":5,"y":0},{"x":4,"y":0}]},{"id":20,"cells":[{"x":11,"y":11},{"x":11,"y":12},{"x":12,"y":12},{"x":13,"y":12}]},{"id":21,"cells":[{"x":12,"y":0},{"x":11,"y":0},{"x":11,"y":1},{"x":12,"y":1},{"x":13,"y":1}]},{"id":22,"cells":[{"x":7,"y":13},{"x":8,"y":13},{"x":8,"y":12},{"x":7,"y":12},{"x":7,"y":11},{"x":6,"y":11}]},{"id":23,"cells":[{"x":5,"y":4},{"x":4,"y":4},{"x":4,"y":5},{"x":3,"y":5},{"x":3,"y":4}]},{"id":24,"cells":[{"x":3,"y":8},{"x":3,"y":7},{"x":4,"y":7},{"x":4,"y":6},{"x":3,"y":6}]},{"id":25,"cells":[{"x":10,"y":12},{"x":9,"y":12},{"x":9,"y":13},{"x":10,"y":13},{"x":11,"y":13}]},{"id":26,"cells":[{"x":5,"y":10},{"x":5,"y":11},{"x":5,"y":12},{"x":6,"y":12},{"x":6,"y":13},{"x":6,"y":14}]},{"id":27,"cells":[{"x":3,"y":2},{"x":4,"y":2},{"x":4,"y":3},{"x":3,"y":3}]},{"id":28,"cells":[{"x":5,"y":9},{"x":5,"y":8},{"x":4,"y":8},{"x":4,"y":9}]},{"id":29,"cells":[{"x":8,"y":14},{"x":7,"y":14},{"x":7,"y":15},{"x":6,"y":15},{"x":6,"y":16}]},{"id":30,"cells":[{"x":14,"y":6},{"x":15,"y":6},{"x":15,"y":5}]},{"id":31,"cells":[{"x":15,"y":3},{"x":15,"y":4},{"x":14,"y":4},{"x":14,"y":3}]},{"id":32,"cells":[{"x":3,"y":9},{"x":3,"y":10},{"x":3,"y":11},{"x":4,"y":11},{"x":4,"y":12},{"x":4,"y":13}]},{"id":33,"cells":[{"x":11,"y":14},{"x":12,"y":14},{"x":12,"y":13},{"x":13,"y":13},{"x":13,"y":14}]},{"id":34,"cells":[{"x":15,"y":11},{"x":15,"y":12},{"x":14,"y":12},{"x":14,"y":13}]},{"id":35,"cells":[{"x":1,"y":11},{"x":2,"y":11},{"x":2,"y":10},{"x":2,"y":9},{"x":2,"y":8},{"x":2,"y":7}]},{"id":36,"cells":[{"x":9,"y":15},{"x":8,"y":15},{"x":8,"y":16},{"x":7,"y":16},{"x":7,"y":17}]},{"id":37,"cells":[{"x":9,"y":14},{"x":10,"y":14},{"x":10,"y":15},{"x":10,"y":16}]},{"id":38,"cells":[{"x":9,"y":16},{"x":9,"y":17},{"x":8,"y":17},{"x":8,"y":18}]},{"id":39,"cells":[{"x":2,"y":14},{"x":2,"y":13},{"x":2,"y":12},{"x":3,"y":12},{"x":3,"y":13}]},{"id":40,"cells":[{"x":1,"y":7},{"x":1,"y":6},{"x":2,"y":6},{"x":2,"y":5}]},{"id":41,"cells":[{"x":13,"y":2},{"x":14,"y":2},{"x":15,"y":2},{"x":15,"y":1},{"x":14,"y":1},{"x":14,"y":0}]},{"id":42,"cells":[{"x":5,"y":13},{"x":5,"y":14},{"x":4,"y":14},{"x":4,"y":15}]},{"id":43,"cells":[{"x":4,"y":1},{"x":3,"y":1},{"x":3,"y":0},{"x":2,"y":0},{"x":1,"y":0}]},{"id":44,"cells":[{"x":3,"y":14},{"x":3,"y":15},{"x":2,"y":15}]},{"id":45,"cells":[{"x":13,"y":15},{"x":12,"y":15},{"x":11,"y":15},{"x":11,"y":16},{"x":12,"y":16}]},{"id":46,"cells":[{"x":15,"y":13},{"x":15,"y":14},{"x":14,"y":14},{"x":14,"y":15}]},{"id":47,"cells":[{"x":15,"y":15},{"x":15,"y":16},{"x":14,"y":16},{"x":13,"y":16},{"x":13,"y":17},{"x":13,"y":18}]},{"id":48,"cells":[{"x":5,"y":15},{"x":5,"y":16},{"x":4,"y":16},{"x":3,"y":16},{"x":3,"y":17}]},{"id":49,"cells":[{"x":0,"y":11},{"x":0,"y":12},{"x":1,"y":12},{"x":1,"y":13},{"x":0,"y":13},{"x":0,"y":14}]},{"id":50,"cells":[{"x":12,"y":19},{"x":12,"y":18},{"x":12,"y":17},{"x":11,"y":17},{"x":11,"y":18}]},{"id":51,"cells":[{"x":6,"y":18},{"x":6,"y":17},{"x":5,"y":17},{"x":4,"y":17},{"x":4,"y":18}]},{"id":52,"cells":[{"x":15,"y":19},{"x":15,"y":18},{"x":15,"y":17},{"x":14,"y":17},{"x":14,"y":18}]},{"id":53,"cells":[{"x":9,"y":18},{"x":10,"y":18},{"x":10,"y":19},{"x":11,"y":19},{"x":11,"y":20}]},{"id":54,"cells":[{"x":2,"y":3},{"x":2,"y":2},{"x":2,"y":1},{"x":1,"y":1}]},{"id":55,"cells":[{"x":1,"y":14},{"x":1,"y":15},{"x":1,"y":16},{"x":2,"y":16},{"x":2,"y":17},{"x":2,"y":18}]},{"id":56,"cells":[{"x":13,"y":19},{"x":14,"y":19},{"x":14,"y":20}]},{"id":57,"cells":[{"x":0,"y":15},{"x":0,"y":16},{"x":0,"y":17},{"x":1,"y":17},{"x":1,"y":18}]},{"id":58,"cells":[{"x":12,"y":20},{"x":13,"y":20},{"x":13,"y":21},{"x":12,"y":21},{"x":11,"y":21}]},{"id":59,"cells":[{"x":3,"y":18},{"x":3,"y":19},{"x":2,"y":19},{"x":1,"y":19}]},{"id":60,"cells":[{"x":7,"y":18},{"x":7,"y":19},{"x":6,"y":19},{"x":6,"y":20}]},{"id":61,"cells":[{"x":0,"y":10},{"x":0,"y":9},{"x":1,"y":9},{"x":1,"y":8},{"x":0,"y":8}]},{"id":62,"cells":[{"x":5,"y":18},{"x":5,"y":19}]},{"id":63,"cells":[{"x":8,"y":21},{"x":9,"y":21},{"x":9,"y":20},{"x":10,"y":20},{"x":10,"y":21}]},{"id":64,"cells":[{"x":4,"y":19},{"x":4,"y":20},{"x":3,"y":20}]},{"id":65,"cells":[{"x":2,"y":4},{"x":1,"y":4},{"x":1,"y":5},{"x":0,"y":5},{"x":0,"y":4}]},{"id":66,"cells":[{"x":2,"y":21},{"x":2,"y":20},{"x":1,"y":20}]},{"id":67,"cells":[{"x":1,"y":2},{"x":0,"y":2},{"x":0,"y":1},{"x":0,"y":0}]},{"id":68,"cells":[{"x":8,"y":20},{"x":7,"y":20},{"x":7,"y":21}]},{"id":69,"cells":[{"x":0,"y":18},{"x":0,"y":19}]},{"id":70,"cells":[{"x":5,"y":20},{"x":5,"y":21}]},{"id":71,"cells":[{"x":14,"y":21},{"x":15,"y":21}]}];
-  const BASE_STAGE_704 = [{"id":0,"cells":[{"x":5,"y":7},{"x":4,"y":7},{"x":3,"y":7},{"x":3,"y":6},{"x":2,"y":6},{"x":2,"y":5},{"x":2,"y":4}]},{"id":1,"cells":[{"x":9,"y":18},{"x":9,"y":19}]},{"id":2,"cells":[{"x":11,"y":18},{"x":11,"y":17},{"x":12,"y":17}]},{"id":3,"cells":[{"x":12,"y":12},{"x":12,"y":11}]},{"id":4,"cells":[{"x":5,"y":11},{"x":5,"y":12}]},{"id":5,"cells":[{"x":10,"y":11},{"x":9,"y":11},{"x":8,"y":11},{"x":8,"y":10},{"x":7,"y":10}]},{"id":6,"cells":[{"x":7,"y":16},{"x":8,"y":16},{"x":9,"y":16}]},{"id":7,"cells":[{"x":7,"y":13},{"x":6,"y":13},{"x":5,"y":13},{"x":5,"y":14},{"x":4,"y":14},{"x":3,"y":14}]},{"id":8,"cells":[{"x":13,"y":10},{"x":14,"y":10},{"x":14,"y":9},{"x":13,"y":9}]},{"id":9,"cells":[{"x":3,"y":13},{"x":2,"y":13},{"x":2,"y":14}]},{"id":10,"cells":[{"x":15,"y":18},{"x":14,"y":18},{"x":13,"y":18},{"x":13,"y":17},{"x":14,"y":17}]},{"id":11,"cells":[{"x":14,"y":20},{"x":13,"y":20},{"x":13,"y":21},{"x":12,"y":21}]},{"id":12,"cells":[{"x":5,"y":16},{"x":5,"y":17},{"x":5,"y":18}]},{"id":13,"cells":[{"x":1,"y":2},{"x":0,"y":2},{"x":0,"y":1},{"x":0,"y":0},{"x":1,"y":0}]},{"id":14,"cells":[{"x":4,"y":6},{"x":4,"y":5},{"x":4,"y":4},{"x":3,"y":4},{"x":3,"y":3}]},{"id":15,"cells":[{"x":4,"y":18},{"x":4,"y":17},{"x":3,"y":17},{"x":2,"y":17},{"x":1,"y":17}]},{"id":16,"cells":[{"x":9,"y":15},{"x":9,"y":14},{"x":10,"y":14},{"x":10,"y":15},{"x":10,"y":16}]},{"id":17,"cells":[{"x":8,"y":20},{"x":8,"y":19},{"x":8,"y":18},{"x":7,"y":18},{"x":7,"y":19}]},{"id":18,"cells":[{"x":10,"y":9},{"x":10,"y":8},{"x":9,"y":8},{"x":9,"y":7},{"x":10,"y":7}]},{"id":19,"cells":[{"x":14,"y":1},{"x":14,"y":0}]},{"id":20,"cells":[{"x":13,"y":6},{"x":13,"y":5}]},{"id":21,"cells":[{"x":8,"y":2},{"x":9,"y":2},{"x":9,"y":3},{"x":10,"y":3}]},{"id":22,"cells":[{"x":7,"y":3},{"x":7,"y":4},{"x":8,"y":4},{"x":9,"y":4},{"x":10,"y":4}]},{"id":23,"cells":[{"x":12,"y":7},{"x":13,"y":7}]},{"id":24,"cells":[{"x":6,"y":20},{"x":6,"y":21}]},{"id":25,"cells":[{"x":8,"y":6},{"x":8,"y":7},{"x":8,"y":8},{"x":7,"y":8},{"x":6,"y":8}]},{"id":26,"cells":[{"x":4,"y":16},{"x":4,"y":15},{"x":3,"y":15}]},{"id":27,"cells":[{"x":2,"y":8},{"x":1,"y":8},{"x":0,"y":8}]},{"id":28,"cells":[{"x":7,"y":14},{"x":8,"y":14},{"x":8,"y":13},{"x":9,"y":13}]},{"id":29,"cells":[{"x":3,"y":18},{"x":3,"y":19}]},{"id":30,"cells":[{"x":2,"y":7},{"x":1,"y":7}]},{"id":31,"cells":[{"x":13,"y":14},{"x":12,"y":14},{"x":11,"y":14},{"x":11,"y":15},{"x":11,"y":16},{"x":12,"y":16}]},{"id":32,"cells":[{"x":12,"y":15},{"x":13,"y":15}]},{"id":33,"cells":[{"x":9,"y":17},{"x":10,"y":17},{"x":10,"y":18},{"x":10,"y":19},{"x":11,"y":19},{"x":11,"y":20}]},{"id":34,"cells":[{"x":13,"y":13},{"x":13,"y":12},{"x":14,"y":12},{"x":14,"y":13},{"x":15,"y":13}]},{"id":35,"cells":[{"x":1,"y":13},{"x":0,"y":13}]},{"id":36,"cells":[{"x":13,"y":11},{"x":14,"y":11}]},{"id":37,"cells":[{"x":12,"y":18},{"x":12,"y":19},{"x":13,"y":19}]},{"id":38,"cells":[{"x":13,"y":16},{"x":14,"y":16}]},{"id":39,"cells":[{"x":15,"y":11},{"x":15,"y":10},{"x":15,"y":9}]},{"id":40,"cells":[{"x":2,"y":16},{"x":1,"y":16},{"x":0,"y":16},{"x":0,"y":17}]},{"id":41,"cells":[{"x":4,"y":19},{"x":5,"y":19},{"x":5,"y":20},{"x":5,"y":21}]},{"id":42,"cells":[{"x":13,"y":4},{"x":13,"y":3},{"x":14,"y":3}]},{"id":43,"cells":[{"x":2,"y":10},{"x":2,"y":11},{"x":1,"y":11}]},{"id":44,"cells":[{"x":13,"y":0},{"x":13,"y":1},{"x":12,"y":1},{"x":11,"y":1},{"x":10,"y":1},{"x":10,"y":2},{"x":11,"y":2}]},{"id":45,"cells":[{"x":7,"y":7},{"x":6,"y":7},{"x":6,"y":6},{"x":5,"y":6},{"x":5,"y":5}]},{"id":46,"cells":[{"x":2,"y":9},{"x":1,"y":9},{"x":1,"y":10},{"x":0,"y":10}]},{"id":47,"cells":[{"x":4,"y":20},{"x":4,"y":21},{"x":3,"y":21},{"x":3,"y":20},{"x":2,"y":20},{"x":2,"y":21}]},{"id":48,"cells":[{"x":0,"y":7},{"x":0,"y":6},{"x":1,"y":6},{"x":1,"y":5},{"x":0,"y":5}]},{"id":49,"cells":[{"x":1,"y":19},{"x":1,"y":20}]},{"id":50,"cells":[{"x":14,"y":6},{"x":14,"y":5},{"x":15,"y":5}]},{"id":51,"cells":[{"x":4,"y":1},{"x":4,"y":2},{"x":4,"y":3},{"x":5,"y":3},{"x":5,"y":2}]},{"id":52,"cells":[{"x":5,"y":10},{"x":4,"y":10},{"x":4,"y":11},{"x":4,"y":12},{"x":3,"y":12},{"x":2,"y":12},{"x":1,"y":12}]},{"id":53,"cells":[{"x":12,"y":3},{"x":12,"y":2},{"x":13,"y":2},{"x":14,"y":2}]},{"id":54,"cells":[{"x":11,"y":21},{"x":10,"y":21},{"x":10,"y":20},{"x":9,"y":20},{"x":9,"y":21}]},{"id":55,"cells":[{"x":6,"y":4},{"x":6,"y":3},{"x":6,"y":2}]},{"id":56,"cells":[{"x":1,"y":14},{"x":1,"y":15},{"x":0,"y":15}]},{"id":57,"cells":[{"x":2,"y":18},{"x":1,"y":18},{"x":0,"y":18},{"x":0,"y":19},{"x":0,"y":20}]},{"id":58,"cells":[{"x":7,"y":20},{"x":7,"y":21}]},{"id":59,"cells":[{"x":11,"y":7},{"x":11,"y":8},{"x":12,"y":8}]},{"id":60,"cells":[{"x":3,"y":2},{"x":3,"y":1}]},{"id":61,"cells":[{"x":15,"y":14},{"x":14,"y":14},{"x":14,"y":15},{"x":15,"y":15}]},{"id":62,"cells":[{"x":2,"y":3},{"x":1,"y":3}]},{"id":63,"cells":[{"x":1,"y":21},{"x":0,"y":21}]},{"id":64,"cells":[{"x":14,"y":19},{"x":15,"y":19}]},{"id":65,"cells":[{"x":14,"y":4},{"x":15,"y":4}]},{"id":66,"cells":[{"x":14,"y":21},{"x":15,"y":21}]},{"id":67,"cells":[{"x":1,"y":4},{"x":0,"y":4}]},{"id":68,"cells":[{"x":13,"y":8},{"x":14,"y":8},{"x":15,"y":8}]},{"id":69,"cells":[{"x":14,"y":7},{"x":15,"y":7}]},{"id":70,"cells":[{"x":7,"y":2},{"x":7,"y":1}]},{"id":71,"cells":[{"x":2,"y":2},{"x":2,"y":1},{"x":2,"y":0}]}];
-  const BASE_STAGE_722 = [{"id":0,"cells":[{"x":1,"y":6},{"x":1,"y":5},{"x":0,"y":5},{"x":0,"y":6}]},{"id":1,"cells":[{"x":6,"y":8},{"x":6,"y":7},{"x":5,"y":7},{"x":5,"y":6}]},{"id":2,"cells":[{"x":3,"y":17},{"x":3,"y":16},{"x":2,"y":16}]},{"id":3,"cells":[{"x":9,"y":14},{"x":9,"y":15},{"x":9,"y":16},{"x":8,"y":16},{"x":8,"y":17},{"x":9,"y":17},{"x":10,"y":17}]},{"id":4,"cells":[{"x":13,"y":19},{"x":12,"y":19},{"x":12,"y":20},{"x":11,"y":20},{"x":11,"y":19}]},{"id":5,"cells":[{"x":13,"y":2},{"x":13,"y":1},{"x":14,"y":1},{"x":14,"y":0},{"x":13,"y":0}]},{"id":6,"cells":[{"x":10,"y":15},{"x":10,"y":14},{"x":10,"y":13},{"x":10,"y":12},{"x":11,"y":12},{"x":11,"y":11}]},{"id":7,"cells":[{"x":8,"y":13},{"x":9,"y":13},{"x":9,"y":12}]},{"id":8,"cells":[{"x":8,"y":9},{"x":9,"y":9},{"x":9,"y":8}]},{"id":9,"cells":[{"x":5,"y":4},{"x":5,"y":3},{"x":4,"y":3}]},{"id":10,"cells":[{"x":12,"y":3},{"x":13,"y":3},{"x":14,"y":3},{"x":14,"y":4},{"x":15,"y":4},{"x":15,"y":3}]},{"id":11,"cells":[{"x":1,"y":12},{"x":1,"y":13},{"x":2,"y":13},{"x":2,"y":12}]},{"id":12,"cells":[{"x":8,"y":7},{"x":9,"y":7},{"x":9,"y":6},{"x":10,"y":6},{"x":10,"y":5}]},{"id":13,"cells":[{"x":3,"y":12},{"x":3,"y":11},{"x":3,"y":10},{"x":2,"y":10},{"x":2,"y":9},{"x":1,"y":9}]},{"id":14,"cells":[{"x":6,"y":11},{"x":5,"y":11},{"x":5,"y":12},{"x":5,"y":13}]},{"id":15,"cells":[{"x":9,"y":3},{"x":9,"y":2},{"x":8,"y":2}]},{"id":16,"cells":[{"x":9,"y":10},{"x":8,"y":10},{"x":8,"y":11},{"x":7,"y":11},{"x":7,"y":10}]},{"id":17,"cells":[{"x":11,"y":7},{"x":10,"y":7},{"x":10,"y":8},{"x":11,"y":8}]},{"id":18,"cells":[{"x":4,"y":15},{"x":4,"y":16}]},{"id":19,"cells":[{"x":12,"y":15},{"x":12,"y":16},{"x":13,"y":16}]},{"id":20,"cells":[{"x":11,"y":9},{"x":12,"y":9},{"x":12,"y":10},{"x":13,"y":10}]},{"id":21,"cells":[{"x":6,"y":9},{"x":7,"y":9},{"x":7,"y":8},{"x":7,"y":7}]},{"id":22,"cells":[{"x":3,"y":4},{"x":3,"y":5},{"x":2,"y":5},{"x":2,"y":4},{"x":1,"y":4},{"x":0,"y":4},{"x":0,"y":3}]},{"id":23,"cells":[{"x":14,"y":18},{"x":13,"y":18},{"x":12,"y":18}]},{"id":24,"cells":[{"x":1,"y":15},{"x":1,"y":14},{"x":0,"y":14}]},{"id":25,"cells":[{"x":8,"y":4},{"x":8,"y":5},{"x":8,"y":6},{"x":7,"y":6},{"x":7,"y":5},{"x":7,"y":4}]},{"id":26,"cells":[{"x":0,"y":8},{"x":1,"y":8},{"x":2,"y":8},{"x":2,"y":7},{"x":1,"y":7}]},{"id":27,"cells":[{"x":13,"y":8},{"x":12,"y":8},{"x":12,"y":7},{"x":12,"y":6},{"x":13,"y":6},{"x":14,"y":6}]},{"id":28,"cells":[{"x":9,"y":1},{"x":8,"y":1},{"x":8,"y":0}]},{"id":29,"cells":[{"x":6,"y":6},{"x":6,"y":5},{"x":6,"y":4}]},{"id":30,"cells":[{"x":13,"y":4},{"x":12,"y":4},{"x":12,"y":5},{"x":13,"y":5}]},{"id":31,"cells":[{"x":9,"y":18},{"x":9,"y":19}]},{"id":32,"cells":[{"x":7,"y":20},{"x":8,"y":20},{"x":8,"y":21},{"x":9,"y":21},{"x":10,"y":21}]},{"id":33,"cells":[{"x":2,"y":1},{"x":3,"y":1},{"x":3,"y":0},{"x":2,"y":0},{"x":1,"y":0}]},{"id":34,"cells":[{"x":3,"y":20},{"x":3,"y":19},{"x":2,"y":19},{"x":1,"y":19},{"x":1,"y":20}]},{"id":35,"cells":[{"x":10,"y":16},{"x":11,"y":16},{"x":11,"y":15},{"x":11,"y":14},{"x":12,"y":14}]},{"id":36,"cells":[{"x":3,"y":21},{"x":2,"y":21}]},{"id":37,"cells":[{"x":0,"y":16},{"x":1,"y":16},{"x":1,"y":17},{"x":0,"y":17}]},{"id":38,"cells":[{"x":6,"y":14},{"x":6,"y":15},{"x":6,"y":16}]},{"id":39,"cells":[{"x":2,"y":18},{"x":3,"y":18},{"x":4,"y":18},{"x":4,"y":19}]},{"id":40,"cells":[{"x":7,"y":2},{"x":6,"y":2},{"x":5,"y":2}]},{"id":41,"cells":[{"x":5,"y":21},{"x":5,"y":20},{"x":4,"y":20},{"x":4,"y":21}]},{"id":42,"cells":[{"x":14,"y":14},{"x":14,"y":13},{"x":14,"y":12},{"x":15,"y":12}]},{"id":43,"cells":[{"x":1,"y":11},{"x":0,"y":11}]},{"id":44,"cells":[{"x":8,"y":19},{"x":7,"y":19},{"x":7,"y":18},{"x":7,"y":17},{"x":6,"y":17},{"x":6,"y":18},{"x":6,"y":19}]},{"id":45,"cells":[{"x":1,"y":18},{"x":0,"y":18}]},{"id":46,"cells":[{"x":11,"y":21},{"x":12,"y":21},{"x":13,"y":21}]},{"id":47,"cells":[{"x":7,"y":0},{"x":7,"y":1},{"x":6,"y":1},{"x":6,"y":0}]},{"id":48,"cells":[{"x":11,"y":6},{"x":11,"y":5},{"x":11,"y":4},{"x":10,"y":4},{"x":10,"y":3}]},{"id":49,"cells":[{"x":14,"y":8},{"x":15,"y":8}]},{"id":50,"cells":[{"x":11,"y":3},{"x":11,"y":2},{"x":11,"y":1}]},{"id":51,"cells":[{"x":10,"y":2},{"x":10,"y":1},{"x":10,"y":0}]},{"id":52,"cells":[{"x":2,"y":3},{"x":3,"y":3},{"x":3,"y":2},{"x":2,"y":2}]},{"id":53,"cells":[{"x":1,"y":3},{"x":1,"y":2},{"x":0,"y":2}]},{"id":54,"cells":[{"x":4,"y":2},{"x":4,"y":1},{"x":4,"y":0}]},{"id":55,"cells":[{"x":12,"y":12},{"x":12,"y":11},{"x":13,"y":11},{"x":14,"y":11}]},{"id":56,"cells":[{"x":14,"y":10},{"x":15,"y":10}]},{"id":57,"cells":[{"x":1,"y":10},{"x":0,"y":10}]},{"id":58,"cells":[{"x":14,"y":20},{"x":14,"y":21}]},{"id":59,"cells":[{"x":1,"y":1},{"x":0,"y":1}]},{"id":60,"cells":[{"x":1,"y":21},{"x":0,"y":21}]},{"id":61,"cells":[{"x":6,"y":20},{"x":6,"y":21}]},{"id":62,"cells":[{"x":14,"y":2},{"x":15,"y":2}]},{"id":63,"cells":[{"x":14,"y":17},{"x":14,"y":16},{"x":15,"y":16},{"x":15,"y":17}]},{"id":64,"cells":[{"x":12,"y":2},{"x":12,"y":1},{"x":12,"y":0}]},{"id":65,"cells":[{"x":14,"y":19},{"x":15,"y":19},{"x":15,"y":20}]},{"id":66,"cells":[{"x":14,"y":15},{"x":15,"y":15}]},{"id":67,"cells":[{"x":13,"y":7},{"x":14,"y":7},{"x":15,"y":7}]},{"id":68,"cells":[{"x":14,"y":5},{"x":15,"y":5}]},{"id":69,"cells":[{"x":13,"y":9},{"x":14,"y":9},{"x":15,"y":9}]},{"id":70,"cells":[{"x":15,"y":1},{"x":15,"y":0}]},{"id":71,"cells":[{"x":5,"y":1},{"x":5,"y":0}]}];
-
-  const STAGE_BLUEPRINTS = [
-    {key:'stage_001', seed:56},
-    {key:'stage_002', seed:69},
-    {key:'stage_003', seed:106},
-    {key:'stage_004', seed:117},
-    {key:'stage_005', seed:402},
-    {key:'stage_006', seed:437},
-    {key:'stage_007', seed:565},
-    {key:'stage_008', seed:721},
-    {key:'stage_009', seed:744},
-    {key:'stage_010', seed:825},
-    {key:'stage_011', seed:877}
-  ];
-
-  const WRONG_MESSAGES = [
-    '🐼違いましたね',
-    '🐼そうじゃなくて',
-    '🐼松のや食べて落ち着こう',
-    '🐼間違えました',
-    '🐼あ、そっちか',
-    '🐼ほろ酔い飲んでる？',
-    '🐼あれ、なんで',
-    '🐼大丈夫ですか？',
-    '🐼全然分かんない',
-    '🐼見てましたか？',
-    '🐼もう一回やります？'
-  ];
-
-  const Screen = { HOME:'home', RULES:'rules', NAME:'name', COUNTDOWN:'countdown', GAME:'game', RESULT:'result' };
-  let currentScreen = Screen.HOME;
-  let gameState = 'idle'; // idle / countdown / playing / ended
-  let currentStageKey = 'stage_001';
-  const STAGE_BAG_KEY = 'bekutoru_stage_bag_v9';
-  const LAST_STAGE_KEY = 'bekutoru_last_stage_key_v9';
-
-  const app = document.getElementById('app');
-  const cv = document.getElementById('gameCanvas');
-  const ctx = cv.getContext('2d');
-  const boardShell = document.getElementById('boardShell');
-  const remainCount = document.getElementById('remainCount');
-  const timerText = document.getElementById('timerText');
-  const penaltyText = document.getElementById('penaltyText');
-  const countdownText = document.getElementById('countdownText');
-  const wrongBubble = document.getElementById('wrongBubble');
-  const toastEl = document.getElementById('toast');
-  const resultTitle = document.getElementById('resultTitle');
-  const resultScore = document.getElementById('resultScore');
-  const rawTimeText = document.getElementById('rawTimeText');
-  const penaltyResultText = document.getElementById('penaltyResultText');
-  const wrongResultText = document.getElementById('wrongResultText');
-  const hintResultText = document.getElementById('hintResultText');
-  const scoreSubmitArea = document.getElementById('scoreSubmitArea');
-  const playerNameInput = document.getElementById('playerNameInput');
-  const playerNameStartInput = document.getElementById('playerNameStartInput');
-  const nameRegisterMessage = document.getElementById('nameRegisterMessage');
-  const submitScoreButton = document.getElementById('submitScoreButton');
-  const submitMessage = document.getElementById('submitMessage');
-  const rankingList = document.getElementById('rankingList');
-
-  let supabaseClient = null;
-  let supabaseLoading = false;
-
-  function initSupabaseClient(){
-    try {
-      if (window.supabase && CONFIG.SUPABASE_URL && CONFIG.SUPABASE_PUBLISHABLE_KEY) {
-        supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_PUBLISHABLE_KEY);
-      }
-    } catch (error) {
-      console.warn('Supabase init failed', error);
-    }
-  }
-
-  function loadSupabaseScript(){
-    if (supabaseClient || supabaseLoading) return;
-    supabaseLoading = true;
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-    script.async = true;
-    script.onload = () => { supabaseLoading = false; initSupabaseClient(); };
-    script.onerror = () => { supabaseLoading = false; console.warn('Supabase script load failed'); };
-    document.head.appendChild(script);
-  }
-
-  let cs = 20;
-  let arrows = [];
-  let occ = new Int16Array(GW * GH).fill(-1);
-  let removed = new Set();
-  let pullAnimations = [];
-  let flash = new Map();
-  let hintMarks = new Map();
-  let gameStartAt = 0;
-  let gameEndAt = 0;
-  let wrongCount = 0;
-  let hintCount = 0;
-  let scoreSubmitted = false;
-  let isRetired = false;
-  let wrongBubbleTimer = null;
-  let toastTimer = null;
-  let countdownTimer = null;
-
-  const idx = (x, y) => y * GW + x;
-  const inb = (x, y) => x >= 0 && x < GW && y >= 0 && y < GH;
-
-  function preventMobileBrowserGestures(){
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function(event){
-      const now = Date.now();
-      const interactive = event.target && event.target.closest && event.target.closest('a, button, input, textarea, select, .allow-touch');
-      if (!interactive && now - lastTouchEnd <= 350) event.preventDefault();
-      lastTouchEnd = now;
-    }, {passive:false});
-
-    document.addEventListener('touchmove', function(event){
-      if (event.touches && event.touches.length > 1) event.preventDefault();
-    }, {passive:false});
-
-    ['gesturestart','gesturechange','gestureend','dblclick','contextmenu'].forEach((type) => {
-      document.addEventListener(type, (event) => event.preventDefault(), {passive:false});
-    });
-  }
-
-  function showScreen(screen){
-    currentScreen = screen;
-    document.querySelectorAll('[data-screen]').forEach((el) => {
-      el.hidden = el.dataset.screen !== screen;
-    });
-    app.classList.toggle('game-mode', screen === Screen.GAME);
-  }
-
-  function showToast(message){
-    toastEl.textContent = message;
-    toastEl.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
-  }
-
-  function readCookie(name){
-    const prefix = encodeURIComponent(name) + '=';
-    const parts = document.cookie ? document.cookie.split(';') : [];
-    for (const part of parts) {
-      const item = part.trim();
-      if (item.indexOf(prefix) === 0) return decodeURIComponent(item.slice(prefix.length));
-    }
-    return '';
-  }
-
-  function writeCookie(name, value){
-    const maxAge = 60 * 60 * 24 * 365;
-    document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value) + '; max-age=' + maxAge + '; path=/; SameSite=Lax';
-  }
-
-  function getSavedPlayerName(){
-    let name = '';
-    try { name = localStorage.getItem(CONFIG.PLAYER_NAME_KEY) || ''; } catch (error) { name = ''; }
-    if (!name) name = readCookie(CONFIG.PLAYER_NAME_KEY);
-    return String(name || '').trim().slice(0, 12);
-  }
-
-  function savePlayerName(name){
-    const clean = String(name || '').trim().slice(0, 12);
-    if (!clean) return '';
-    try { localStorage.setItem(CONFIG.PLAYER_NAME_KEY, clean); } catch (error) {}
-    writeCookie(CONFIG.PLAYER_NAME_KEY, clean);
-    return clean;
-  }
-
-  function openNameRegistration(){
-    gameState = 'idle';
-    const saved = getSavedPlayerName();
-    playerNameStartInput.value = saved;
-    nameRegisterMessage.textContent = '';
-    showScreen(Screen.NAME);
-  }
-
-  function confirmNameAndStart(){
-    const name = String(playerNameStartInput.value || '').trim();
-    if (!name) {
-      nameRegisterMessage.textContent = '名前を入力してください。';
-      playerNameStartInput.focus();
-      return;
-    }
-    const saved = savePlayerName(name);
-    playerNameInput.value = saved;
-    beginCountdown();
-  }
-
-  function formatTime(ms){
-    const total = Math.max(0, Math.round(ms || 0));
-    const minutes = Math.floor(total / 60000);
-    const seconds = Math.floor((total % 60000) / 1000);
-    const millis = total % 1000;
-    return String(minutes).padStart(2,'0') + ':' + String(seconds).padStart(2,'0') + '.' + String(millis).padStart(3,'0');
-  }
-
-  function getRawTimeMs(){
-    if (!gameStartAt) return 0;
-    const end = gameEndAt || performance.now();
-    return Math.max(0, Math.round(end - gameStartAt));
-  }
-
-  function getPenaltyMs(){
-    return wrongCount * WRONG_PENALTY_MS + hintCount * HINT_PENALTY_MS;
-  }
-
-  function getFinalTimeMs(){
-    return getRawTimeMs() + getPenaltyMs();
-  }
-
-  function createSeededRandom(seed){
-    let value = seed >>> 0;
-    return function(){
-      value += 0x6D2B79F5;
-      let t = value;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+/* Sound events follow visible outcomes; failures never block gameplay. */
+(() => {
+    const read = (key, fallback) => {
+        try {
+            const v = localStorage.getItem(key);
+            return v === null ? fallback : v;
+        }
+        catch (_) {
+            return fallback;
+        }
     };
-  }
-
-  function shuffleWithRandom(list, rand){
-    const arr = list.slice();
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(rand() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+    let enabled = read('bekutoru:sound', 'on') !== 'off';
+    const saved = read('bekutoru:volume', null);
+    let volume = saved === null || String(saved).trim() === '' || !Number.isFinite(Number(saved)) || Number(saved) < 0 || Number(saved) > 1 ? .5 : Number(saved);
+    let context = null, last = -Infinity;
+    const voices = new Set();
+    const tones = { start: [440, 660], perfect: [660, 880], ok: [440, 550], early: [220, 160], hit: [150, 90], milestone: [660, 880, 1100], end: [440, 330, 220], hint: [440, 880] };
+    function persist() {
+        try {
+            localStorage.setItem('bekutoru:sound', enabled ? 'on' : 'off');
+            localStorage.setItem('bekutoru:volume', String(volume));
+        }
+        catch (_) { }
     }
-    return arr;
+    function stop() {
+        for (const voice of [...voices]) {
+            try {
+                voice.o.stop();
+            }
+            catch (_) { }
+            try {
+                voice.o.disconnect();
+                voice.g.disconnect();
+            }
+            catch (_) { }
+            voices.delete(voice);
+        }
+    }
+    function unlock() {
+        if (!enabled || volume === 0 || document.hidden)
+            return;
+        try {
+            if (!context) {
+                const A = window.AudioContext || window.webkitAudioContext;
+                if (!A)
+                    return;
+                context = new A();
+            }
+            if (context.state !== 'running')
+                Promise.resolve(context.resume()).catch(() => { });
+        }
+        catch (_) { }
+    }
+    function play(kind) {
+        try {
+            if (!enabled || volume === 0 || document.hidden)
+                return;
+            unlock();
+            if (!context || context.state !== 'running' || !tones[kind])
+                return;
+            const now = context.currentTime;
+            if (kind !== 'end' && kind !== 'milestone' && now - last < .08)
+                return;
+            if (kind === 'end' || kind === 'milestone')
+                stop();
+            last = now;
+            const pitch = tones[kind], step = .085;
+            for (let i = 0; i < pitch.length; i++) {
+                if (voices.size >= 6)
+                    break;
+                const o = context.createOscillator(), g = context.createGain(), at = now + i * step, v = { o, g };
+                voices.add(v);
+                o.type = kind === 'hit' ? 'triangle' : 'sine';
+                o.frequency.setValueAtTime(pitch[i], at);
+                g.gain.setValueAtTime(0, at);
+                g.gain.linearRampToValueAtTime(volume * .1, at + .008);
+                g.gain.exponentialRampToValueAtTime(.0001, at + .12);
+                o.connect(g);
+                g.connect(context.destination);
+                o.onended = () => {
+                    voices.delete(v);
+                    try {
+                        o.disconnect();
+                        g.disconnect();
+                    }
+                    catch (_) { }
+                };
+                o.start(at);
+                o.stop(at + .13);
+            }
+        }
+        catch (_) {
+            stop();
+        }
+    }
+    function render() { const button = document.getElementById('soundToggle'); button.textContent = enabled ? t("\u30AA\u30F3") : t("\u30AA\u30D5"); button.setAttribute('aria-pressed', String(enabled)); document.getElementById('soundVolume').value = String(volume); }
+    function setEnabled(value) {
+        enabled = Boolean(value);
+        if (!enabled)
+            stop();
+        persist();
+        render();
+        if (enabled)
+            unlock();
+    }
+    function setVolume(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n) || n < 0 || n > 1)
+            return;
+        volume = n;
+        if (volume === 0)
+            stop();
+        persist();
+        render();
+        if (volume > 0)
+            unlock();
+    }
+    document.getElementById('soundToggle').addEventListener('click', () => setEnabled(!enabled));
+    document.getElementById('soundVolume').addEventListener('input', e => setVolume(e.target.value));
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stop();
+            try {
+                if (context)
+                    Promise.resolve(context.suspend()).catch(() => { });
+            }
+            catch (_) { }
+        }
+    });
+    window.addEventListener('pagehide', stop);
+    window.addEventListener('game-language-change', render);
+    window.GameSound = { play, unlock, setEnabled, setVolume, stop, getState: () => ({ enabled, volume, voices: voices.size }) };
+    render();
+})();
+</script>
+<script id="score-queue">
+(function (root) {
+  'use strict';
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const copy = value => JSON.parse(JSON.stringify(value));
+  function createScoreQueue({gameSlug, storage = null, send, onChange = () => {}, uuid = () => root.crypto.randomUUID()}) {
+    const prefix = gameSlug + ':score-pending:v1:';
+    const memory = new Map();
+    let operation = null;
+    function valid(item) {
+      const p = item?.payload;
+      return UUID.test(item?.id || '') && p?.p_submission_id === item.id && p.p_game_slug === gameSlug &&
+        typeof p.p_display_name === 'string' && p.p_display_name.trim() !== '' &&
+        typeof p.p_client_version === 'string' && Number.isInteger(p.p_score) && p.p_score >= 0;
+    }
+    function save(item) {
+      memory.set(item.id, copy(item));
+      try { storage?.setItem(prefix + item.id, JSON.stringify(item)); } catch { /* Keep this session usable. */ }
+      return item;
+    }
+    function list() {
+      try {
+        if (storage) for (let i = 0; i < storage.length; i++) {
+          const key = storage.key(i);
+          if (!key?.startsWith(prefix)) continue;
+          try { const item = JSON.parse(storage.getItem(key)); if (valid(item)) memory.set(item.id, item); } catch { /* Preserve malformed data without sending it. */ }
+        }
+      } catch { /* Memory contains records saved in this session. */ }
+      return [...memory.values()].map(copy).sort((a,b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+    }
+    function notify(item, receipt = null) { try { onChange(copy(item), receipt && copy(receipt)); } catch {} }
+    function capture(name, clientVersion) {
+      if (!name?.trim()) return null;
+      try { const id = uuid(); if (!UUID.test(id)) return null; return Object.freeze({id, name:name.trim(), clientVersion}); }
+      catch { return null; }
+    }
+    function enqueue(play, score, presentation = null) {
+      if (!play) return null;
+      const existing = list().find(item => item.id === play.id);
+      const payload = {p_submission_id:play.id,p_display_name:play.name,p_game_slug:gameSlug,p_score:score,p_client_version:play.clientVersion};
+      if (existing) {
+        if (JSON.stringify(existing.payload) !== JSON.stringify(payload)) throw new Error('A finalized play cannot change');
+        return existing;
+      }
+      const item = {id:play.id,payload,presentation:copy(presentation),createdAt:Date.now(),state:'pending'};
+      if (!valid(item)) throw new Error('Invalid finalized score');
+      save(item);notify(item);return copy(item);
+    }
+    function drain() {
+      if (operation) return operation;
+      operation = (async () => {
+        const attempted = new Set();
+        for (;;) {
+          const item = list().find(value => !attempted.has(value.id) && value.state !== 'rejected');
+          if (!item) break;
+          attempted.add(item.id);item.state='sending';save(item);notify(item);
+          try {
+            const response = await send(copy(item.payload));
+            const receipt = Array.isArray(response) ? response[0] : response;
+            if (receipt?.accepted === false) { const error=new Error('Score rejected');error.code='PT422';throw error; }
+            if (receipt?.accepted !== true) throw new Error('Invalid score acknowledgement');
+            if (receipt.result_display_name !== item.payload.p_display_name || receipt.result_normalized_name !== item.payload.p_display_name || !Number.isInteger(receipt.result_first_score) || !Number.isInteger(receipt.result_best_score) || !Number.isInteger(receipt.result_play_count) || receipt.result_play_count < 1 || typeof receipt.was_duplicate !== 'boolean') throw new Error('Invalid score acknowledgement');
+            item.state='submitted';
+            memory.delete(item.id);
+            try { storage?.removeItem(prefix + item.id); } catch { /* Same ID is safe to retry after reload. */ }
+            notify(item, receipt);
+          } catch (error) {
+            item.state = ['PT409','PT422','22023','22001','22003'].includes(error?.code) ? 'rejected' : 'pending';
+            save(item);notify(item);
+          }
+        }
+      })().finally(() => { operation=null; });
+      return operation;
+    }
+    return {capture,enqueue,list,drain,prefix};
   }
-
-  function generateStageFromSeed(seed){
-    const rand = createSeededRandom(seed);
-    const localOcc = new Int16Array(GW * GH).fill(-1);
-    const list = [];
-    let attempts = 0;
-
-    while (list.length < TARGET_ARROWS && attempts < TARGET_ARROWS * 180) {
-      attempts++;
-      let placed = false;
-      const dirs = shuffleWithRandom([[1,0],[-1,0],[0,1],[0,-1]], rand);
-
-      for (const d of dirs) {
-        const candidates = [];
-
-        for (let y = 0; y < GH; y++) {
-          for (let x = 0; x < GW; x++) {
-            if (localOcc[idx(x, y)] !== -1) continue;
-
-            const bx = x - d[0];
-            const by = y - d[1];
-            if (!inb(bx, by) || localOcc[idx(bx, by)] !== -1) continue;
-
-            let cx = x + d[0];
-            let cy = y + d[1];
-            let ok = true;
-            let corridorLength = 0;
-
-            while (inb(cx, cy)) {
-              if (localOcc[idx(cx, cy)] !== -1) {
-                ok = false;
+  const api={createScoreQueue};
+  if (typeof module === 'object' && module.exports) module.exports=api;
+  root.CommonScoreQueue=api;
+})(typeof globalThis === 'object' ? globalThis : this);
+</script>
+<script>
+'use strict';
+(function () {
+    const CONFIG = {
+        GAME_SLUG: 'bekutoru',
+        GAME_TITLE: 'ベク取る',
+        GAME_TITLE_DISPLAY: '🐼ベク取る🐼',
+        GAME_URL: 'https://chameleonjp.codeberg.page/bekutoru/',
+        LAB_URL: 'https://chameleonjp-lab.github.io/chameleonjp_lab/',
+        PLAYER_NAME_KEY: 'bekutoru_player_name',
+        SUPABASE_URL: 'https://mlpnjgezrnhdxsxolyzj.supabase.co',
+        SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_drzcy0v97knU6FgjqSgBHw_0A9XPdFM'
+    };
+    const GW = 16;
+    const GH = 22;
+    const TARGET_ARROWS = 72;
+    const WRONG_PENALTY_MS = 5000;
+    const HINT_PENALTY_MS = 15000;
+    const BASE_STAGE_001 = [{ "id": 0, "cells": [{ "x": 13, "y": 4 }, { "x": 12, "y": 4 }, { "x": 12, "y": 5 }, { "x": 11, "y": 5 }, { "x": 11, "y": 6 }, { "x": 10, "y": 6 }] }, { "id": 1, "cells": [{ "x": 12, "y": 7 }, { "x": 12, "y": 6 }, { "x": 13, "y": 6 }, { "x": 13, "y": 5 }, { "x": 14, "y": 5 }] }, { "id": 2, "cells": [{ "x": 14, "y": 7 }, { "x": 13, "y": 7 }, { "x": 13, "y": 8 }, { "x": 12, "y": 8 }, { "x": 12, "y": 9 }, { "x": 11, "y": 9 }] }, { "id": 3, "cells": [{ "x": 11, "y": 7 }, { "x": 11, "y": 8 }, { "x": 10, "y": 8 }, { "x": 9, "y": 8 }] }, { "id": 4, "cells": [{ "x": 11, "y": 3 }, { "x": 11, "y": 4 }, { "x": 10, "y": 4 }, { "x": 10, "y": 5 }, { "x": 9, "y": 5 }, { "x": 9, "y": 4 }] }, { "id": 5, "cells": [{ "x": 10, "y": 7 }, { "x": 9, "y": 7 }, { "x": 9, "y": 6 }, { "x": 8, "y": 6 }] }, { "id": 6, "cells": [{ "x": 9, "y": 9 }, { "x": 10, "y": 9 }, { "x": 10, "y": 10 }, { "x": 11, "y": 10 }] }, { "id": 7, "cells": [{ "x": 14, "y": 8 }, { "x": 14, "y": 9 }, { "x": 13, "y": 9 }, { "x": 13, "y": 10 }] }, { "id": 8, "cells": [{ "x": 12, "y": 10 }, { "x": 12, "y": 11 }, { "x": 13, "y": 11 }, { "x": 14, "y": 11 }] }, { "id": 9, "cells": [{ "x": 8, "y": 4 }, { "x": 8, "y": 5 }, { "x": 7, "y": 5 }, { "x": 7, "y": 6 }, { "x": 6, "y": 6 }] }, { "id": 10, "cells": [{ "x": 8, "y": 7 }, { "x": 8, "y": 8 }, { "x": 8, "y": 9 }, { "x": 7, "y": 9 }, { "x": 7, "y": 10 }, { "x": 6, "y": 10 }] }, { "id": 11, "cells": [{ "x": 6, "y": 8 }, { "x": 7, "y": 8 }, { "x": 7, "y": 7 }, { "x": 6, "y": 7 }, { "x": 5, "y": 7 }] }, { "id": 12, "cells": [{ "x": 5, "y": 6 }, { "x": 5, "y": 5 }, { "x": 6, "y": 5 }, { "x": 6, "y": 4 }, { "x": 6, "y": 3 }, { "x": 5, "y": 3 }] }, { "id": 13, "cells": [{ "x": 13, "y": 3 }, { "x": 12, "y": 3 }, { "x": 12, "y": 2 }, { "x": 11, "y": 2 }, { "x": 10, "y": 2 }, { "x": 9, "y": 2 }] }, { "id": 14, "cells": [{ "x": 7, "y": 4 }, { "x": 7, "y": 3 }, { "x": 8, "y": 3 }, { "x": 8, "y": 2 }] }, { "id": 15, "cells": [{ "x": 8, "y": 1 }, { "x": 7, "y": 1 }, { "x": 7, "y": 2 }, { "x": 6, "y": 2 }, { "x": 5, "y": 2 }, { "x": 5, "y": 1 }] }, { "id": 16, "cells": [{ "x": 10, "y": 11 }, { "x": 9, "y": 11 }, { "x": 9, "y": 10 }, { "x": 8, "y": 10 }, { "x": 8, "y": 11 }] }, { "id": 17, "cells": [{ "x": 7, "y": 0 }, { "x": 8, "y": 0 }, { "x": 9, "y": 0 }, { "x": 9, "y": 1 }, { "x": 10, "y": 1 }, { "x": 10, "y": 0 }] }, { "id": 18, "cells": [{ "x": 14, "y": 10 }, { "x": 15, "y": 10 }, { "x": 15, "y": 9 }, { "x": 15, "y": 8 }, { "x": 15, "y": 7 }] }, { "id": 19, "cells": [{ "x": 6, "y": 1 }, { "x": 6, "y": 0 }, { "x": 5, "y": 0 }, { "x": 4, "y": 0 }] }, { "id": 20, "cells": [{ "x": 11, "y": 11 }, { "x": 11, "y": 12 }, { "x": 12, "y": 12 }, { "x": 13, "y": 12 }] }, { "id": 21, "cells": [{ "x": 12, "y": 0 }, { "x": 11, "y": 0 }, { "x": 11, "y": 1 }, { "x": 12, "y": 1 }, { "x": 13, "y": 1 }] }, { "id": 22, "cells": [{ "x": 7, "y": 13 }, { "x": 8, "y": 13 }, { "x": 8, "y": 12 }, { "x": 7, "y": 12 }, { "x": 7, "y": 11 }, { "x": 6, "y": 11 }] }, { "id": 23, "cells": [{ "x": 5, "y": 4 }, { "x": 4, "y": 4 }, { "x": 4, "y": 5 }, { "x": 3, "y": 5 }, { "x": 3, "y": 4 }] }, { "id": 24, "cells": [{ "x": 3, "y": 8 }, { "x": 3, "y": 7 }, { "x": 4, "y": 7 }, { "x": 4, "y": 6 }, { "x": 3, "y": 6 }] }, { "id": 25, "cells": [{ "x": 10, "y": 12 }, { "x": 9, "y": 12 }, { "x": 9, "y": 13 }, { "x": 10, "y": 13 }, { "x": 11, "y": 13 }] }, { "id": 26, "cells": [{ "x": 5, "y": 10 }, { "x": 5, "y": 11 }, { "x": 5, "y": 12 }, { "x": 6, "y": 12 }, { "x": 6, "y": 13 }, { "x": 6, "y": 14 }] }, { "id": 27, "cells": [{ "x": 3, "y": 2 }, { "x": 4, "y": 2 }, { "x": 4, "y": 3 }, { "x": 3, "y": 3 }] }, { "id": 28, "cells": [{ "x": 5, "y": 9 }, { "x": 5, "y": 8 }, { "x": 4, "y": 8 }, { "x": 4, "y": 9 }] }, { "id": 29, "cells": [{ "x": 8, "y": 14 }, { "x": 7, "y": 14 }, { "x": 7, "y": 15 }, { "x": 6, "y": 15 }, { "x": 6, "y": 16 }] }, { "id": 30, "cells": [{ "x": 14, "y": 6 }, { "x": 15, "y": 6 }, { "x": 15, "y": 5 }] }, { "id": 31, "cells": [{ "x": 15, "y": 3 }, { "x": 15, "y": 4 }, { "x": 14, "y": 4 }, { "x": 14, "y": 3 }] }, { "id": 32, "cells": [{ "x": 3, "y": 9 }, { "x": 3, "y": 10 }, { "x": 3, "y": 11 }, { "x": 4, "y": 11 }, { "x": 4, "y": 12 }, { "x": 4, "y": 13 }] }, { "id": 33, "cells": [{ "x": 11, "y": 14 }, { "x": 12, "y": 14 }, { "x": 12, "y": 13 }, { "x": 13, "y": 13 }, { "x": 13, "y": 14 }] }, { "id": 34, "cells": [{ "x": 15, "y": 11 }, { "x": 15, "y": 12 }, { "x": 14, "y": 12 }, { "x": 14, "y": 13 }] }, { "id": 35, "cells": [{ "x": 1, "y": 11 }, { "x": 2, "y": 11 }, { "x": 2, "y": 10 }, { "x": 2, "y": 9 }, { "x": 2, "y": 8 }, { "x": 2, "y": 7 }] }, { "id": 36, "cells": [{ "x": 9, "y": 15 }, { "x": 8, "y": 15 }, { "x": 8, "y": 16 }, { "x": 7, "y": 16 }, { "x": 7, "y": 17 }] }, { "id": 37, "cells": [{ "x": 9, "y": 14 }, { "x": 10, "y": 14 }, { "x": 10, "y": 15 }, { "x": 10, "y": 16 }] }, { "id": 38, "cells": [{ "x": 9, "y": 16 }, { "x": 9, "y": 17 }, { "x": 8, "y": 17 }, { "x": 8, "y": 18 }] }, { "id": 39, "cells": [{ "x": 2, "y": 14 }, { "x": 2, "y": 13 }, { "x": 2, "y": 12 }, { "x": 3, "y": 12 }, { "x": 3, "y": 13 }] }, { "id": 40, "cells": [{ "x": 1, "y": 7 }, { "x": 1, "y": 6 }, { "x": 2, "y": 6 }, { "x": 2, "y": 5 }] }, { "id": 41, "cells": [{ "x": 13, "y": 2 }, { "x": 14, "y": 2 }, { "x": 15, "y": 2 }, { "x": 15, "y": 1 }, { "x": 14, "y": 1 }, { "x": 14, "y": 0 }] }, { "id": 42, "cells": [{ "x": 5, "y": 13 }, { "x": 5, "y": 14 }, { "x": 4, "y": 14 }, { "x": 4, "y": 15 }] }, { "id": 43, "cells": [{ "x": 4, "y": 1 }, { "x": 3, "y": 1 }, { "x": 3, "y": 0 }, { "x": 2, "y": 0 }, { "x": 1, "y": 0 }] }, { "id": 44, "cells": [{ "x": 3, "y": 14 }, { "x": 3, "y": 15 }, { "x": 2, "y": 15 }] }, { "id": 45, "cells": [{ "x": 13, "y": 15 }, { "x": 12, "y": 15 }, { "x": 11, "y": 15 }, { "x": 11, "y": 16 }, { "x": 12, "y": 16 }] }, { "id": 46, "cells": [{ "x": 15, "y": 13 }, { "x": 15, "y": 14 }, { "x": 14, "y": 14 }, { "x": 14, "y": 15 }] }, { "id": 47, "cells": [{ "x": 15, "y": 15 }, { "x": 15, "y": 16 }, { "x": 14, "y": 16 }, { "x": 13, "y": 16 }, { "x": 13, "y": 17 }, { "x": 13, "y": 18 }] }, { "id": 48, "cells": [{ "x": 5, "y": 15 }, { "x": 5, "y": 16 }, { "x": 4, "y": 16 }, { "x": 3, "y": 16 }, { "x": 3, "y": 17 }] }, { "id": 49, "cells": [{ "x": 0, "y": 11 }, { "x": 0, "y": 12 }, { "x": 1, "y": 12 }, { "x": 1, "y": 13 }, { "x": 0, "y": 13 }, { "x": 0, "y": 14 }] }, { "id": 50, "cells": [{ "x": 12, "y": 19 }, { "x": 12, "y": 18 }, { "x": 12, "y": 17 }, { "x": 11, "y": 17 }, { "x": 11, "y": 18 }] }, { "id": 51, "cells": [{ "x": 6, "y": 18 }, { "x": 6, "y": 17 }, { "x": 5, "y": 17 }, { "x": 4, "y": 17 }, { "x": 4, "y": 18 }] }, { "id": 52, "cells": [{ "x": 15, "y": 19 }, { "x": 15, "y": 18 }, { "x": 15, "y": 17 }, { "x": 14, "y": 17 }, { "x": 14, "y": 18 }] }, { "id": 53, "cells": [{ "x": 9, "y": 18 }, { "x": 10, "y": 18 }, { "x": 10, "y": 19 }, { "x": 11, "y": 19 }, { "x": 11, "y": 20 }] }, { "id": 54, "cells": [{ "x": 2, "y": 3 }, { "x": 2, "y": 2 }, { "x": 2, "y": 1 }, { "x": 1, "y": 1 }] }, { "id": 55, "cells": [{ "x": 1, "y": 14 }, { "x": 1, "y": 15 }, { "x": 1, "y": 16 }, { "x": 2, "y": 16 }, { "x": 2, "y": 17 }, { "x": 2, "y": 18 }] }, { "id": 56, "cells": [{ "x": 13, "y": 19 }, { "x": 14, "y": 19 }, { "x": 14, "y": 20 }] }, { "id": 57, "cells": [{ "x": 0, "y": 15 }, { "x": 0, "y": 16 }, { "x": 0, "y": 17 }, { "x": 1, "y": 17 }, { "x": 1, "y": 18 }] }, { "id": 58, "cells": [{ "x": 12, "y": 20 }, { "x": 13, "y": 20 }, { "x": 13, "y": 21 }, { "x": 12, "y": 21 }, { "x": 11, "y": 21 }] }, { "id": 59, "cells": [{ "x": 3, "y": 18 }, { "x": 3, "y": 19 }, { "x": 2, "y": 19 }, { "x": 1, "y": 19 }] }, { "id": 60, "cells": [{ "x": 7, "y": 18 }, { "x": 7, "y": 19 }, { "x": 6, "y": 19 }, { "x": 6, "y": 20 }] }, { "id": 61, "cells": [{ "x": 0, "y": 10 }, { "x": 0, "y": 9 }, { "x": 1, "y": 9 }, { "x": 1, "y": 8 }, { "x": 0, "y": 8 }] }, { "id": 62, "cells": [{ "x": 5, "y": 18 }, { "x": 5, "y": 19 }] }, { "id": 63, "cells": [{ "x": 8, "y": 21 }, { "x": 9, "y": 21 }, { "x": 9, "y": 20 }, { "x": 10, "y": 20 }, { "x": 10, "y": 21 }] }, { "id": 64, "cells": [{ "x": 4, "y": 19 }, { "x": 4, "y": 20 }, { "x": 3, "y": 20 }] }, { "id": 65, "cells": [{ "x": 2, "y": 4 }, { "x": 1, "y": 4 }, { "x": 1, "y": 5 }, { "x": 0, "y": 5 }, { "x": 0, "y": 4 }] }, { "id": 66, "cells": [{ "x": 2, "y": 21 }, { "x": 2, "y": 20 }, { "x": 1, "y": 20 }] }, { "id": 67, "cells": [{ "x": 1, "y": 2 }, { "x": 0, "y": 2 }, { "x": 0, "y": 1 }, { "x": 0, "y": 0 }] }, { "id": 68, "cells": [{ "x": 8, "y": 20 }, { "x": 7, "y": 20 }, { "x": 7, "y": 21 }] }, { "id": 69, "cells": [{ "x": 0, "y": 18 }, { "x": 0, "y": 19 }] }, { "id": 70, "cells": [{ "x": 5, "y": 20 }, { "x": 5, "y": 21 }] }, { "id": 71, "cells": [{ "x": 14, "y": 21 }, { "x": 15, "y": 21 }] }];
+    const BASE_STAGE_704 = [{ "id": 0, "cells": [{ "x": 5, "y": 7 }, { "x": 4, "y": 7 }, { "x": 3, "y": 7 }, { "x": 3, "y": 6 }, { "x": 2, "y": 6 }, { "x": 2, "y": 5 }, { "x": 2, "y": 4 }] }, { "id": 1, "cells": [{ "x": 9, "y": 18 }, { "x": 9, "y": 19 }] }, { "id": 2, "cells": [{ "x": 11, "y": 18 }, { "x": 11, "y": 17 }, { "x": 12, "y": 17 }] }, { "id": 3, "cells": [{ "x": 12, "y": 12 }, { "x": 12, "y": 11 }] }, { "id": 4, "cells": [{ "x": 5, "y": 11 }, { "x": 5, "y": 12 }] }, { "id": 5, "cells": [{ "x": 10, "y": 11 }, { "x": 9, "y": 11 }, { "x": 8, "y": 11 }, { "x": 8, "y": 10 }, { "x": 7, "y": 10 }] }, { "id": 6, "cells": [{ "x": 7, "y": 16 }, { "x": 8, "y": 16 }, { "x": 9, "y": 16 }] }, { "id": 7, "cells": [{ "x": 7, "y": 13 }, { "x": 6, "y": 13 }, { "x": 5, "y": 13 }, { "x": 5, "y": 14 }, { "x": 4, "y": 14 }, { "x": 3, "y": 14 }] }, { "id": 8, "cells": [{ "x": 13, "y": 10 }, { "x": 14, "y": 10 }, { "x": 14, "y": 9 }, { "x": 13, "y": 9 }] }, { "id": 9, "cells": [{ "x": 3, "y": 13 }, { "x": 2, "y": 13 }, { "x": 2, "y": 14 }] }, { "id": 10, "cells": [{ "x": 15, "y": 18 }, { "x": 14, "y": 18 }, { "x": 13, "y": 18 }, { "x": 13, "y": 17 }, { "x": 14, "y": 17 }] }, { "id": 11, "cells": [{ "x": 14, "y": 20 }, { "x": 13, "y": 20 }, { "x": 13, "y": 21 }, { "x": 12, "y": 21 }] }, { "id": 12, "cells": [{ "x": 5, "y": 16 }, { "x": 5, "y": 17 }, { "x": 5, "y": 18 }] }, { "id": 13, "cells": [{ "x": 1, "y": 2 }, { "x": 0, "y": 2 }, { "x": 0, "y": 1 }, { "x": 0, "y": 0 }, { "x": 1, "y": 0 }] }, { "id": 14, "cells": [{ "x": 4, "y": 6 }, { "x": 4, "y": 5 }, { "x": 4, "y": 4 }, { "x": 3, "y": 4 }, { "x": 3, "y": 3 }] }, { "id": 15, "cells": [{ "x": 4, "y": 18 }, { "x": 4, "y": 17 }, { "x": 3, "y": 17 }, { "x": 2, "y": 17 }, { "x": 1, "y": 17 }] }, { "id": 16, "cells": [{ "x": 9, "y": 15 }, { "x": 9, "y": 14 }, { "x": 10, "y": 14 }, { "x": 10, "y": 15 }, { "x": 10, "y": 16 }] }, { "id": 17, "cells": [{ "x": 8, "y": 20 }, { "x": 8, "y": 19 }, { "x": 8, "y": 18 }, { "x": 7, "y": 18 }, { "x": 7, "y": 19 }] }, { "id": 18, "cells": [{ "x": 10, "y": 9 }, { "x": 10, "y": 8 }, { "x": 9, "y": 8 }, { "x": 9, "y": 7 }, { "x": 10, "y": 7 }] }, { "id": 19, "cells": [{ "x": 14, "y": 1 }, { "x": 14, "y": 0 }] }, { "id": 20, "cells": [{ "x": 13, "y": 6 }, { "x": 13, "y": 5 }] }, { "id": 21, "cells": [{ "x": 8, "y": 2 }, { "x": 9, "y": 2 }, { "x": 9, "y": 3 }, { "x": 10, "y": 3 }] }, { "id": 22, "cells": [{ "x": 7, "y": 3 }, { "x": 7, "y": 4 }, { "x": 8, "y": 4 }, { "x": 9, "y": 4 }, { "x": 10, "y": 4 }] }, { "id": 23, "cells": [{ "x": 12, "y": 7 }, { "x": 13, "y": 7 }] }, { "id": 24, "cells": [{ "x": 6, "y": 20 }, { "x": 6, "y": 21 }] }, { "id": 25, "cells": [{ "x": 8, "y": 6 }, { "x": 8, "y": 7 }, { "x": 8, "y": 8 }, { "x": 7, "y": 8 }, { "x": 6, "y": 8 }] }, { "id": 26, "cells": [{ "x": 4, "y": 16 }, { "x": 4, "y": 15 }, { "x": 3, "y": 15 }] }, { "id": 27, "cells": [{ "x": 2, "y": 8 }, { "x": 1, "y": 8 }, { "x": 0, "y": 8 }] }, { "id": 28, "cells": [{ "x": 7, "y": 14 }, { "x": 8, "y": 14 }, { "x": 8, "y": 13 }, { "x": 9, "y": 13 }] }, { "id": 29, "cells": [{ "x": 3, "y": 18 }, { "x": 3, "y": 19 }] }, { "id": 30, "cells": [{ "x": 2, "y": 7 }, { "x": 1, "y": 7 }] }, { "id": 31, "cells": [{ "x": 13, "y": 14 }, { "x": 12, "y": 14 }, { "x": 11, "y": 14 }, { "x": 11, "y": 15 }, { "x": 11, "y": 16 }, { "x": 12, "y": 16 }] }, { "id": 32, "cells": [{ "x": 12, "y": 15 }, { "x": 13, "y": 15 }] }, { "id": 33, "cells": [{ "x": 9, "y": 17 }, { "x": 10, "y": 17 }, { "x": 10, "y": 18 }, { "x": 10, "y": 19 }, { "x": 11, "y": 19 }, { "x": 11, "y": 20 }] }, { "id": 34, "cells": [{ "x": 13, "y": 13 }, { "x": 13, "y": 12 }, { "x": 14, "y": 12 }, { "x": 14, "y": 13 }, { "x": 15, "y": 13 }] }, { "id": 35, "cells": [{ "x": 1, "y": 13 }, { "x": 0, "y": 13 }] }, { "id": 36, "cells": [{ "x": 13, "y": 11 }, { "x": 14, "y": 11 }] }, { "id": 37, "cells": [{ "x": 12, "y": 18 }, { "x": 12, "y": 19 }, { "x": 13, "y": 19 }] }, { "id": 38, "cells": [{ "x": 13, "y": 16 }, { "x": 14, "y": 16 }] }, { "id": 39, "cells": [{ "x": 15, "y": 11 }, { "x": 15, "y": 10 }, { "x": 15, "y": 9 }] }, { "id": 40, "cells": [{ "x": 2, "y": 16 }, { "x": 1, "y": 16 }, { "x": 0, "y": 16 }, { "x": 0, "y": 17 }] }, { "id": 41, "cells": [{ "x": 4, "y": 19 }, { "x": 5, "y": 19 }, { "x": 5, "y": 20 }, { "x": 5, "y": 21 }] }, { "id": 42, "cells": [{ "x": 13, "y": 4 }, { "x": 13, "y": 3 }, { "x": 14, "y": 3 }] }, { "id": 43, "cells": [{ "x": 2, "y": 10 }, { "x": 2, "y": 11 }, { "x": 1, "y": 11 }] }, { "id": 44, "cells": [{ "x": 13, "y": 0 }, { "x": 13, "y": 1 }, { "x": 12, "y": 1 }, { "x": 11, "y": 1 }, { "x": 10, "y": 1 }, { "x": 10, "y": 2 }, { "x": 11, "y": 2 }] }, { "id": 45, "cells": [{ "x": 7, "y": 7 }, { "x": 6, "y": 7 }, { "x": 6, "y": 6 }, { "x": 5, "y": 6 }, { "x": 5, "y": 5 }] }, { "id": 46, "cells": [{ "x": 2, "y": 9 }, { "x": 1, "y": 9 }, { "x": 1, "y": 10 }, { "x": 0, "y": 10 }] }, { "id": 47, "cells": [{ "x": 4, "y": 20 }, { "x": 4, "y": 21 }, { "x": 3, "y": 21 }, { "x": 3, "y": 20 }, { "x": 2, "y": 20 }, { "x": 2, "y": 21 }] }, { "id": 48, "cells": [{ "x": 0, "y": 7 }, { "x": 0, "y": 6 }, { "x": 1, "y": 6 }, { "x": 1, "y": 5 }, { "x": 0, "y": 5 }] }, { "id": 49, "cells": [{ "x": 1, "y": 19 }, { "x": 1, "y": 20 }] }, { "id": 50, "cells": [{ "x": 14, "y": 6 }, { "x": 14, "y": 5 }, { "x": 15, "y": 5 }] }, { "id": 51, "cells": [{ "x": 4, "y": 1 }, { "x": 4, "y": 2 }, { "x": 4, "y": 3 }, { "x": 5, "y": 3 }, { "x": 5, "y": 2 }] }, { "id": 52, "cells": [{ "x": 5, "y": 10 }, { "x": 4, "y": 10 }, { "x": 4, "y": 11 }, { "x": 4, "y": 12 }, { "x": 3, "y": 12 }, { "x": 2, "y": 12 }, { "x": 1, "y": 12 }] }, { "id": 53, "cells": [{ "x": 12, "y": 3 }, { "x": 12, "y": 2 }, { "x": 13, "y": 2 }, { "x": 14, "y": 2 }] }, { "id": 54, "cells": [{ "x": 11, "y": 21 }, { "x": 10, "y": 21 }, { "x": 10, "y": 20 }, { "x": 9, "y": 20 }, { "x": 9, "y": 21 }] }, { "id": 55, "cells": [{ "x": 6, "y": 4 }, { "x": 6, "y": 3 }, { "x": 6, "y": 2 }] }, { "id": 56, "cells": [{ "x": 1, "y": 14 }, { "x": 1, "y": 15 }, { "x": 0, "y": 15 }] }, { "id": 57, "cells": [{ "x": 2, "y": 18 }, { "x": 1, "y": 18 }, { "x": 0, "y": 18 }, { "x": 0, "y": 19 }, { "x": 0, "y": 20 }] }, { "id": 58, "cells": [{ "x": 7, "y": 20 }, { "x": 7, "y": 21 }] }, { "id": 59, "cells": [{ "x": 11, "y": 7 }, { "x": 11, "y": 8 }, { "x": 12, "y": 8 }] }, { "id": 60, "cells": [{ "x": 3, "y": 2 }, { "x": 3, "y": 1 }] }, { "id": 61, "cells": [{ "x": 15, "y": 14 }, { "x": 14, "y": 14 }, { "x": 14, "y": 15 }, { "x": 15, "y": 15 }] }, { "id": 62, "cells": [{ "x": 2, "y": 3 }, { "x": 1, "y": 3 }] }, { "id": 63, "cells": [{ "x": 1, "y": 21 }, { "x": 0, "y": 21 }] }, { "id": 64, "cells": [{ "x": 14, "y": 19 }, { "x": 15, "y": 19 }] }, { "id": 65, "cells": [{ "x": 14, "y": 4 }, { "x": 15, "y": 4 }] }, { "id": 66, "cells": [{ "x": 14, "y": 21 }, { "x": 15, "y": 21 }] }, { "id": 67, "cells": [{ "x": 1, "y": 4 }, { "x": 0, "y": 4 }] }, { "id": 68, "cells": [{ "x": 13, "y": 8 }, { "x": 14, "y": 8 }, { "x": 15, "y": 8 }] }, { "id": 69, "cells": [{ "x": 14, "y": 7 }, { "x": 15, "y": 7 }] }, { "id": 70, "cells": [{ "x": 7, "y": 2 }, { "x": 7, "y": 1 }] }, { "id": 71, "cells": [{ "x": 2, "y": 2 }, { "x": 2, "y": 1 }, { "x": 2, "y": 0 }] }];
+    const BASE_STAGE_722 = [{ "id": 0, "cells": [{ "x": 1, "y": 6 }, { "x": 1, "y": 5 }, { "x": 0, "y": 5 }, { "x": 0, "y": 6 }] }, { "id": 1, "cells": [{ "x": 6, "y": 8 }, { "x": 6, "y": 7 }, { "x": 5, "y": 7 }, { "x": 5, "y": 6 }] }, { "id": 2, "cells": [{ "x": 3, "y": 17 }, { "x": 3, "y": 16 }, { "x": 2, "y": 16 }] }, { "id": 3, "cells": [{ "x": 9, "y": 14 }, { "x": 9, "y": 15 }, { "x": 9, "y": 16 }, { "x": 8, "y": 16 }, { "x": 8, "y": 17 }, { "x": 9, "y": 17 }, { "x": 10, "y": 17 }] }, { "id": 4, "cells": [{ "x": 13, "y": 19 }, { "x": 12, "y": 19 }, { "x": 12, "y": 20 }, { "x": 11, "y": 20 }, { "x": 11, "y": 19 }] }, { "id": 5, "cells": [{ "x": 13, "y": 2 }, { "x": 13, "y": 1 }, { "x": 14, "y": 1 }, { "x": 14, "y": 0 }, { "x": 13, "y": 0 }] }, { "id": 6, "cells": [{ "x": 10, "y": 15 }, { "x": 10, "y": 14 }, { "x": 10, "y": 13 }, { "x": 10, "y": 12 }, { "x": 11, "y": 12 }, { "x": 11, "y": 11 }] }, { "id": 7, "cells": [{ "x": 8, "y": 13 }, { "x": 9, "y": 13 }, { "x": 9, "y": 12 }] }, { "id": 8, "cells": [{ "x": 8, "y": 9 }, { "x": 9, "y": 9 }, { "x": 9, "y": 8 }] }, { "id": 9, "cells": [{ "x": 5, "y": 4 }, { "x": 5, "y": 3 }, { "x": 4, "y": 3 }] }, { "id": 10, "cells": [{ "x": 12, "y": 3 }, { "x": 13, "y": 3 }, { "x": 14, "y": 3 }, { "x": 14, "y": 4 }, { "x": 15, "y": 4 }, { "x": 15, "y": 3 }] }, { "id": 11, "cells": [{ "x": 1, "y": 12 }, { "x": 1, "y": 13 }, { "x": 2, "y": 13 }, { "x": 2, "y": 12 }] }, { "id": 12, "cells": [{ "x": 8, "y": 7 }, { "x": 9, "y": 7 }, { "x": 9, "y": 6 }, { "x": 10, "y": 6 }, { "x": 10, "y": 5 }] }, { "id": 13, "cells": [{ "x": 3, "y": 12 }, { "x": 3, "y": 11 }, { "x": 3, "y": 10 }, { "x": 2, "y": 10 }, { "x": 2, "y": 9 }, { "x": 1, "y": 9 }] }, { "id": 14, "cells": [{ "x": 6, "y": 11 }, { "x": 5, "y": 11 }, { "x": 5, "y": 12 }, { "x": 5, "y": 13 }] }, { "id": 15, "cells": [{ "x": 9, "y": 3 }, { "x": 9, "y": 2 }, { "x": 8, "y": 2 }] }, { "id": 16, "cells": [{ "x": 9, "y": 10 }, { "x": 8, "y": 10 }, { "x": 8, "y": 11 }, { "x": 7, "y": 11 }, { "x": 7, "y": 10 }] }, { "id": 17, "cells": [{ "x": 11, "y": 7 }, { "x": 10, "y": 7 }, { "x": 10, "y": 8 }, { "x": 11, "y": 8 }] }, { "id": 18, "cells": [{ "x": 4, "y": 15 }, { "x": 4, "y": 16 }] }, { "id": 19, "cells": [{ "x": 12, "y": 15 }, { "x": 12, "y": 16 }, { "x": 13, "y": 16 }] }, { "id": 20, "cells": [{ "x": 11, "y": 9 }, { "x": 12, "y": 9 }, { "x": 12, "y": 10 }, { "x": 13, "y": 10 }] }, { "id": 21, "cells": [{ "x": 6, "y": 9 }, { "x": 7, "y": 9 }, { "x": 7, "y": 8 }, { "x": 7, "y": 7 }] }, { "id": 22, "cells": [{ "x": 3, "y": 4 }, { "x": 3, "y": 5 }, { "x": 2, "y": 5 }, { "x": 2, "y": 4 }, { "x": 1, "y": 4 }, { "x": 0, "y": 4 }, { "x": 0, "y": 3 }] }, { "id": 23, "cells": [{ "x": 14, "y": 18 }, { "x": 13, "y": 18 }, { "x": 12, "y": 18 }] }, { "id": 24, "cells": [{ "x": 1, "y": 15 }, { "x": 1, "y": 14 }, { "x": 0, "y": 14 }] }, { "id": 25, "cells": [{ "x": 8, "y": 4 }, { "x": 8, "y": 5 }, { "x": 8, "y": 6 }, { "x": 7, "y": 6 }, { "x": 7, "y": 5 }, { "x": 7, "y": 4 }] }, { "id": 26, "cells": [{ "x": 0, "y": 8 }, { "x": 1, "y": 8 }, { "x": 2, "y": 8 }, { "x": 2, "y": 7 }, { "x": 1, "y": 7 }] }, { "id": 27, "cells": [{ "x": 13, "y": 8 }, { "x": 12, "y": 8 }, { "x": 12, "y": 7 }, { "x": 12, "y": 6 }, { "x": 13, "y": 6 }, { "x": 14, "y": 6 }] }, { "id": 28, "cells": [{ "x": 9, "y": 1 }, { "x": 8, "y": 1 }, { "x": 8, "y": 0 }] }, { "id": 29, "cells": [{ "x": 6, "y": 6 }, { "x": 6, "y": 5 }, { "x": 6, "y": 4 }] }, { "id": 30, "cells": [{ "x": 13, "y": 4 }, { "x": 12, "y": 4 }, { "x": 12, "y": 5 }, { "x": 13, "y": 5 }] }, { "id": 31, "cells": [{ "x": 9, "y": 18 }, { "x": 9, "y": 19 }] }, { "id": 32, "cells": [{ "x": 7, "y": 20 }, { "x": 8, "y": 20 }, { "x": 8, "y": 21 }, { "x": 9, "y": 21 }, { "x": 10, "y": 21 }] }, { "id": 33, "cells": [{ "x": 2, "y": 1 }, { "x": 3, "y": 1 }, { "x": 3, "y": 0 }, { "x": 2, "y": 0 }, { "x": 1, "y": 0 }] }, { "id": 34, "cells": [{ "x": 3, "y": 20 }, { "x": 3, "y": 19 }, { "x": 2, "y": 19 }, { "x": 1, "y": 19 }, { "x": 1, "y": 20 }] }, { "id": 35, "cells": [{ "x": 10, "y": 16 }, { "x": 11, "y": 16 }, { "x": 11, "y": 15 }, { "x": 11, "y": 14 }, { "x": 12, "y": 14 }] }, { "id": 36, "cells": [{ "x": 3, "y": 21 }, { "x": 2, "y": 21 }] }, { "id": 37, "cells": [{ "x": 0, "y": 16 }, { "x": 1, "y": 16 }, { "x": 1, "y": 17 }, { "x": 0, "y": 17 }] }, { "id": 38, "cells": [{ "x": 6, "y": 14 }, { "x": 6, "y": 15 }, { "x": 6, "y": 16 }] }, { "id": 39, "cells": [{ "x": 2, "y": 18 }, { "x": 3, "y": 18 }, { "x": 4, "y": 18 }, { "x": 4, "y": 19 }] }, { "id": 40, "cells": [{ "x": 7, "y": 2 }, { "x": 6, "y": 2 }, { "x": 5, "y": 2 }] }, { "id": 41, "cells": [{ "x": 5, "y": 21 }, { "x": 5, "y": 20 }, { "x": 4, "y": 20 }, { "x": 4, "y": 21 }] }, { "id": 42, "cells": [{ "x": 14, "y": 14 }, { "x": 14, "y": 13 }, { "x": 14, "y": 12 }, { "x": 15, "y": 12 }] }, { "id": 43, "cells": [{ "x": 1, "y": 11 }, { "x": 0, "y": 11 }] }, { "id": 44, "cells": [{ "x": 8, "y": 19 }, { "x": 7, "y": 19 }, { "x": 7, "y": 18 }, { "x": 7, "y": 17 }, { "x": 6, "y": 17 }, { "x": 6, "y": 18 }, { "x": 6, "y": 19 }] }, { "id": 45, "cells": [{ "x": 1, "y": 18 }, { "x": 0, "y": 18 }] }, { "id": 46, "cells": [{ "x": 11, "y": 21 }, { "x": 12, "y": 21 }, { "x": 13, "y": 21 }] }, { "id": 47, "cells": [{ "x": 7, "y": 0 }, { "x": 7, "y": 1 }, { "x": 6, "y": 1 }, { "x": 6, "y": 0 }] }, { "id": 48, "cells": [{ "x": 11, "y": 6 }, { "x": 11, "y": 5 }, { "x": 11, "y": 4 }, { "x": 10, "y": 4 }, { "x": 10, "y": 3 }] }, { "id": 49, "cells": [{ "x": 14, "y": 8 }, { "x": 15, "y": 8 }] }, { "id": 50, "cells": [{ "x": 11, "y": 3 }, { "x": 11, "y": 2 }, { "x": 11, "y": 1 }] }, { "id": 51, "cells": [{ "x": 10, "y": 2 }, { "x": 10, "y": 1 }, { "x": 10, "y": 0 }] }, { "id": 52, "cells": [{ "x": 2, "y": 3 }, { "x": 3, "y": 3 }, { "x": 3, "y": 2 }, { "x": 2, "y": 2 }] }, { "id": 53, "cells": [{ "x": 1, "y": 3 }, { "x": 1, "y": 2 }, { "x": 0, "y": 2 }] }, { "id": 54, "cells": [{ "x": 4, "y": 2 }, { "x": 4, "y": 1 }, { "x": 4, "y": 0 }] }, { "id": 55, "cells": [{ "x": 12, "y": 12 }, { "x": 12, "y": 11 }, { "x": 13, "y": 11 }, { "x": 14, "y": 11 }] }, { "id": 56, "cells": [{ "x": 14, "y": 10 }, { "x": 15, "y": 10 }] }, { "id": 57, "cells": [{ "x": 1, "y": 10 }, { "x": 0, "y": 10 }] }, { "id": 58, "cells": [{ "x": 14, "y": 20 }, { "x": 14, "y": 21 }] }, { "id": 59, "cells": [{ "x": 1, "y": 1 }, { "x": 0, "y": 1 }] }, { "id": 60, "cells": [{ "x": 1, "y": 21 }, { "x": 0, "y": 21 }] }, { "id": 61, "cells": [{ "x": 6, "y": 20 }, { "x": 6, "y": 21 }] }, { "id": 62, "cells": [{ "x": 14, "y": 2 }, { "x": 15, "y": 2 }] }, { "id": 63, "cells": [{ "x": 14, "y": 17 }, { "x": 14, "y": 16 }, { "x": 15, "y": 16 }, { "x": 15, "y": 17 }] }, { "id": 64, "cells": [{ "x": 12, "y": 2 }, { "x": 12, "y": 1 }, { "x": 12, "y": 0 }] }, { "id": 65, "cells": [{ "x": 14, "y": 19 }, { "x": 15, "y": 19 }, { "x": 15, "y": 20 }] }, { "id": 66, "cells": [{ "x": 14, "y": 15 }, { "x": 15, "y": 15 }] }, { "id": 67, "cells": [{ "x": 13, "y": 7 }, { "x": 14, "y": 7 }, { "x": 15, "y": 7 }] }, { "id": 68, "cells": [{ "x": 14, "y": 5 }, { "x": 15, "y": 5 }] }, { "id": 69, "cells": [{ "x": 13, "y": 9 }, { "x": 14, "y": 9 }, { "x": 15, "y": 9 }] }, { "id": 70, "cells": [{ "x": 15, "y": 1 }, { "x": 15, "y": 0 }] }, { "id": 71, "cells": [{ "x": 5, "y": 1 }, { "x": 5, "y": 0 }] }];
+    const STAGE_BLUEPRINTS = [
+        { key: 'stage_001', seed: 56 },
+        { key: 'stage_002', seed: 69 },
+        { key: 'stage_003', seed: 106 },
+        { key: 'stage_004', seed: 117 },
+        { key: 'stage_005', seed: 402 },
+        { key: 'stage_006', seed: 437 },
+        { key: 'stage_007', seed: 565 },
+        { key: 'stage_008', seed: 721 },
+        { key: 'stage_009', seed: 744 },
+        { key: 'stage_010', seed: 825 },
+        { key: 'stage_011', seed: 877 }
+    ];
+    const WRONG_MESSAGES = [
+        '🐼違いましたね',
+        '🐼そうじゃなくて',
+        '🐼松のや食べて落ち着こう',
+        '🐼間違えました',
+        '🐼あ、そっちか',
+        '🐼ほろ酔い飲んでる？',
+        '🐼あれ、なんで',
+        '🐼大丈夫ですか？',
+        '🐼全然分かんない',
+        '🐼見てましたか？',
+        '🐼もう一回やります？'
+    ];
+    const Screen = { HOME: 'home', RULES: 'rules', COUNTDOWN: 'countdown', GAME: 'game', RESULT: 'result' };
+    let currentScreen = Screen.HOME;
+    let gameState = 'idle'; // idle / countdown / playing / ended
+    let currentStageKey = 'stage_001';
+    const STAGE_BAG_KEY = 'bekutoru_stage_bag_v9';
+    const LAST_STAGE_KEY = 'bekutoru_last_stage_key_v9';
+    const app = document.getElementById('app');
+    const cv = document.getElementById('gameCanvas');
+    const ctx = cv.getContext('2d');
+    const boardShell = document.getElementById('boardShell');
+    const remainCount = document.getElementById('remainCount');
+    const timerText = document.getElementById('timerText');
+    const penaltyText = document.getElementById('penaltyText');
+    const countdownText = document.getElementById('countdownText');
+    const wrongBubble = document.getElementById('wrongBubble');
+    const toastEl = document.getElementById('toast');
+    const resultTitle = document.getElementById('resultTitle');
+    const resultScore = document.getElementById('resultScore');
+    const rawTimeText = document.getElementById('rawTimeText');
+    const penaltyResultText = document.getElementById('penaltyResultText');
+    const wrongResultText = document.getElementById('wrongResultText');
+    const hintResultText = document.getElementById('hintResultText');
+    const playerNameStartInput = document.getElementById('playerNameStartInput');
+    const nameRegisterMessage = document.getElementById('nameRegisterMessage');
+    const submitScoreButton = document.getElementById('submitScoreButton');
+    const submitMessage = document.getElementById('submitMessage');
+    const rankingList = document.getElementById('rankingList');
+    let cs = 20;
+    let arrows = [];
+    let occ = new Int16Array(GW * GH).fill(-1);
+    let removed = new Set();
+    let pullAnimations = [];
+    let flash = new Map();
+    let hintMarks = new Map();
+    let gameStartAt = 0;
+    let gameEndAt = 0;
+    let wrongCount = 0;
+    let hintCount = 0;
+    let isRetired = false;
+    let wrongBubbleTimer = null;
+    let toastTimer = null;
+    let countdownTimer = null;
+    let activePlay = null, startedName = '', lastResult = null, wrongMessage = '';
+    const idx = (x, y) => y * GW + x;
+    const inb = (x, y) => x >= 0 && x < GW && y >= 0 && y < GH;
+    function preventMobileBrowserGestures() {
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = Date.now();
+            const interactive = event.target && event.target.closest && event.target.closest('a, button, input, textarea, select, .allow-touch');
+            if (!interactive && now - lastTouchEnd <= 350)
+                event.preventDefault();
+            lastTouchEnd = now;
+        }, { passive: false });
+        document.addEventListener('touchmove', function (event) {
+            if (event.touches && event.touches.length > 1)
+                event.preventDefault();
+        }, { passive: false });
+        ['gesturestart', 'gesturechange', 'gestureend', 'dblclick', 'contextmenu'].forEach((type) => {
+            document.addEventListener(type, (event) => event.preventDefault(), { passive: false });
+        });
+    }
+    function showScreen(screen) {
+        currentScreen = screen;
+        document.querySelectorAll('[data-screen]').forEach((el) => {
+            el.hidden = el.dataset.screen !== screen;
+        });
+        app.classList.toggle('game-mode', screen === Screen.GAME);
+    }
+    function showToast(message) {
+        toastEl.textContent = message;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+    }
+    function readCookie(name) {
+        const prefix = encodeURIComponent(name) + '=';
+        const parts = document.cookie ? document.cookie.split(';') : [];
+        for (const part of parts) {
+            const item = part.trim();
+            if (item.indexOf(prefix) === 0)
+                return decodeURIComponent(item.slice(prefix.length));
+        }
+        return '';
+    }
+    function writeCookie(name, value) {
+        const maxAge = 60 * 60 * 24 * 365;
+        document.cookie = encodeURIComponent(name) + '=' + encodeURIComponent(value) + '; max-age=' + maxAge + '; path=/; SameSite=Lax';
+    }
+    function getSavedPlayerName() {
+        let name = null;
+        try {
+            name = localStorage.getItem(CONFIG.PLAYER_NAME_KEY);
+        }
+        catch { }
+        if (name === null) {
+            try {
+                name = readCookie(CONFIG.PLAYER_NAME_KEY);
+            }
+            catch {
+                name = '';
+            }
+        }
+        return String(name || '').trim();
+    }
+    function savePlayerName(name) {
+        const clean = String(name || '').trim();
+        try {
+            localStorage.setItem(CONFIG.PLAYER_NAME_KEY, clean);
+        }
+        catch { }
+        try {
+            writeCookie(CONFIG.PLAYER_NAME_KEY, clean);
+        }
+        catch { }
+        return clean;
+    }
+    function formatTime(ms) {
+        const total = Math.max(0, Math.round(ms || 0));
+        const minutes = Math.floor(total / 60000);
+        const seconds = Math.floor((total % 60000) / 1000);
+        const millis = total % 1000;
+        return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0') + '.' + String(millis).padStart(3, '0');
+    }
+    function getRawTimeMs() {
+        if (!gameStartAt)
+            return 0;
+        const end = gameEndAt || performance.now();
+        return Math.max(0, Math.round(end - gameStartAt));
+    }
+    function getPenaltyMs() {
+        return wrongCount * WRONG_PENALTY_MS + hintCount * HINT_PENALTY_MS;
+    }
+    function getFinalTimeMs() {
+        return getRawTimeMs() + getPenaltyMs();
+    }
+    function createSeededRandom(seed) {
+        let value = seed >>> 0;
+        return function () {
+            value += 0x6D2B79F5;
+            let t = value;
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+    function shuffleWithRandom(list, rand) {
+        const arr = list.slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(rand() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+    function generateStageFromSeed(seed) {
+        const rand = createSeededRandom(seed);
+        const localOcc = new Int16Array(GW * GH).fill(-1);
+        const list = [];
+        let attempts = 0;
+        while (list.length < TARGET_ARROWS && attempts < TARGET_ARROWS * 180) {
+            attempts++;
+            let placed = false;
+            const dirs = shuffleWithRandom([[1, 0], [-1, 0], [0, 1], [0, -1]], rand);
+            for (const d of dirs) {
+                const candidates = [];
+                for (let y = 0; y < GH; y++) {
+                    for (let x = 0; x < GW; x++) {
+                        if (localOcc[idx(x, y)] !== -1)
+                            continue;
+                        const bx = x - d[0];
+                        const by = y - d[1];
+                        if (!inb(bx, by) || localOcc[idx(bx, by)] !== -1)
+                            continue;
+                        let cx = x + d[0];
+                        let cy = y + d[1];
+                        let ok = true;
+                        let corridorLength = 0;
+                        while (inb(cx, cy)) {
+                            if (localOcc[idx(cx, cy)] !== -1) {
+                                ok = false;
+                                break;
+                            }
+                            corridorLength++;
+                            cx += d[0];
+                            cy += d[1];
+                        }
+                        if (!ok)
+                            continue;
+                        const centerDistance = Math.abs(x - (GW - 1) / 2) / GW + Math.abs(y - (GH - 1) / 2) / GH;
+                        const score = corridorLength * 1.1 - centerDistance * 1.2 + rand() * 1.2;
+                        candidates.push({ score, x, y });
+                    }
+                }
+                if (!candidates.length)
+                    continue;
+                candidates.sort((a, b) => b.score - a.score);
+                const pick = candidates[Math.floor(rand() * Math.min(candidates.length, 12))];
+                const hx = pick.x;
+                const hy = pick.y;
+                const corridor = new Set();
+                let cx = hx + d[0];
+                let cy = hy + d[1];
+                while (inb(cx, cy)) {
+                    corridor.add(idx(cx, cy));
+                    cx += d[0];
+                    cy += d[1];
+                }
+                const body = [[hx, hy]];
+                const used = new Set([idx(hx, hy)]);
+                const bx = hx - d[0];
+                const by = hy - d[1];
+                if (!inb(bx, by) || localOcc[idx(bx, by)] !== -1 || corridor.has(idx(bx, by)))
+                    continue;
+                body.push([bx, by]);
+                used.add(idx(bx, by));
+                cx = bx;
+                cy = by;
+                const r = rand();
+                const targetLength = r < 0.05 ? 2 : (r < 0.28 ? 3 : (r < 0.62 ? 4 : (r < 0.85 ? 5 : (r < 0.96 ? 6 : 7))));
+                while (body.length < targetLength) {
+                    const nextCandidates = [];
+                    for (const e of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                        const nx = cx + e[0];
+                        const ny = cy + e[1];
+                        const k = idx(nx, ny);
+                        if (!inb(nx, ny) || localOcc[k] !== -1 || used.has(k) || corridor.has(k))
+                            continue;
+                        let adjacent = 0;
+                        for (const q of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+                            const ax = nx + q[0];
+                            const ay = ny + q[1];
+                            if (inb(ax, ay) && localOcc[idx(ax, ay)] !== -1)
+                                adjacent++;
+                        }
+                        const centerDistance = Math.abs(nx - (GW - 1) / 2) / GW + Math.abs(ny - (GH - 1) / 2) / GH;
+                        nextCandidates.push({ score: adjacent * 0.7 - centerDistance * 0.3 + rand(), x: nx, y: ny });
+                    }
+                    if (!nextCandidates.length)
+                        break;
+                    nextCandidates.sort((a, b) => b.score - a.score);
+                    const next = nextCandidates[0];
+                    body.push([next.x, next.y]);
+                    used.add(idx(next.x, next.y));
+                    cx = next.x;
+                    cy = next.y;
+                }
+                const cells = body.slice().reverse();
+                const id = list.length;
+                for (const c of cells)
+                    localOcc[idx(c[0], c[1])] = id;
+                list.push({ id, cells: cells.map(c => ({ x: c[0], y: c[1] })) });
+                placed = true;
                 break;
-              }
-              corridorLength++;
-              cx += d[0];
-              cy += d[1];
             }
-
-            if (!ok) continue;
-
-            const centerDistance = Math.abs(x - (GW - 1) / 2) / GW + Math.abs(y - (GH - 1) / 2) / GH;
-            const score = corridorLength * 1.1 - centerDistance * 1.2 + rand() * 1.2;
-            candidates.push({score, x, y});
-          }
+            if (!placed)
+                break;
         }
-
-        if (!candidates.length) continue;
-        candidates.sort((a, b) => b.score - a.score);
-        const pick = candidates[Math.floor(rand() * Math.min(candidates.length, 12))];
-        const hx = pick.x;
-        const hy = pick.y;
-
-        const corridor = new Set();
-        let cx = hx + d[0];
-        let cy = hy + d[1];
-        while (inb(cx, cy)) {
-          corridor.add(idx(cx, cy));
-          cx += d[0];
-          cy += d[1];
+        if (list.length !== TARGET_ARROWS) {
+            console.warn('Stage generation fell back to base stage', seed, list.length);
+            return BASE_STAGE_001.map((a, i) => ({ id: i, cells: a.cells.map(c => ({ x: c.x, y: c.y })) }));
         }
-
-        const body = [[hx, hy]];
-        const used = new Set([idx(hx, hy)]);
-        const bx = hx - d[0];
-        const by = hy - d[1];
-        if (!inb(bx, by) || localOcc[idx(bx, by)] !== -1 || corridor.has(idx(bx, by))) continue;
-
-        body.push([bx, by]);
-        used.add(idx(bx, by));
-        cx = bx;
-        cy = by;
-
-        const r = rand();
-        const targetLength = r < 0.05 ? 2 : (r < 0.28 ? 3 : (r < 0.62 ? 4 : (r < 0.85 ? 5 : (r < 0.96 ? 6 : 7))));
-
-        while (body.length < targetLength) {
-          const nextCandidates = [];
-
-          for (const e of [[1,0],[-1,0],[0,1],[0,-1]]) {
-            const nx = cx + e[0];
-            const ny = cy + e[1];
-            const k = idx(nx, ny);
-            if (!inb(nx, ny) || localOcc[k] !== -1 || used.has(k) || corridor.has(k)) continue;
-
-            let adjacent = 0;
-            for (const q of [[1,0],[-1,0],[0,1],[0,-1]]) {
-              const ax = nx + q[0];
-              const ay = ny + q[1];
-              if (inb(ax, ay) && localOcc[idx(ax, ay)] !== -1) adjacent++;
+        return list;
+    }
+    function getRandomIndex(max) {
+        if (window.crypto && window.crypto.getRandomValues) {
+            const value = new Uint32Array(1);
+            window.crypto.getRandomValues(value);
+            return value[0] % max;
+        }
+        return Math.floor(Math.random() * max);
+    }
+    function shuffleKeys(keys) {
+        const arr = keys.slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = getRandomIndex(i + 1);
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+    function loadStageBag() {
+        try {
+            const raw = localStorage.getItem(STAGE_BAG_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            if (Array.isArray(parsed) && parsed.every(key => STAGE_BLUEPRINTS.some(stage => stage.key === key)))
+                return parsed;
+        }
+        catch (error) {
+            console.warn(error);
+        }
+        return [];
+    }
+    function saveStageBag(bag) {
+        try {
+            localStorage.setItem(STAGE_BAG_KEY, JSON.stringify(bag));
+        }
+        catch (error) { }
+    }
+    function createNewStageBag() {
+        const keys = shuffleKeys(STAGE_BLUEPRINTS.map(stage => stage.key));
+        const lastKey = (() => {
+            try {
+                return localStorage.getItem(LAST_STAGE_KEY) || '';
             }
-            const centerDistance = Math.abs(nx - (GW - 1) / 2) / GW + Math.abs(ny - (GH - 1) / 2) / GH;
-            nextCandidates.push({score: adjacent * 0.7 - centerDistance * 0.3 + rand(), x:nx, y:ny});
-          }
-
-          if (!nextCandidates.length) break;
-          nextCandidates.sort((a, b) => b.score - a.score);
-          const next = nextCandidates[0];
-          body.push([next.x, next.y]);
-          used.add(idx(next.x, next.y));
-          cx = next.x;
-          cy = next.y;
+            catch (error) {
+                return '';
+            }
+        })();
+        if (lastKey && keys.length > 1 && keys[0] === lastKey) {
+            [keys[0], keys[1]] = [keys[1], keys[0]];
         }
-
-        const cells = body.slice().reverse();
-        const id = list.length;
-        for (const c of cells) localOcc[idx(c[0], c[1])] = id;
-        list.push({id, cells: cells.map(c => ({x:c[0], y:c[1]}))});
-        placed = true;
-        break;
-      }
-
-      if (!placed) break;
+        return keys;
     }
-
-    if (list.length !== TARGET_ARROWS) {
-      console.warn('Stage generation fell back to base stage', seed, list.length);
-      return BASE_STAGE_001.map((a, i) => ({id:i, cells:a.cells.map(c => ({x:c.x, y:c.y}))}));
+    function chooseStageBlueprint() {
+        let bag = loadStageBag();
+        if (!bag.length)
+            bag = createNewStageBag();
+        const nextKey = bag.shift();
+        saveStageBag(bag);
+        try {
+            localStorage.setItem(LAST_STAGE_KEY, nextKey);
+        }
+        catch (error) { }
+        return STAGE_BLUEPRINTS.find(stage => stage.key === nextKey) || STAGE_BLUEPRINTS[0];
     }
-
-    return list;
-  }
-
-  function getRandomIndex(max){
-    if (window.crypto && window.crypto.getRandomValues) {
-      const value = new Uint32Array(1);
-      window.crypto.getRandomValues(value);
-      return value[0] % max;
+    function cloneStage() {
+        const blueprint = chooseStageBlueprint();
+        currentStageKey = blueprint.key;
+        arrows = generateStageFromSeed(blueprint.seed).map((a, i) => ({
+            id: i,
+            cells: a.cells.map(c => ({ x: c.x, y: c.y }))
+        }));
     }
-    return Math.floor(Math.random() * max);
-  }
-
-  function shuffleKeys(keys){
-    const arr = keys.slice();
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = getRandomIndex(i + 1);
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+    function prepareStage() {
+        cloneStage();
+        occ = new Int16Array(GW * GH).fill(-1);
+        for (const a of arrows) {
+            for (const c of a.cells)
+                occ[idx(c.x, c.y)] = a.id;
+        }
+        removed = new Set();
+        pullAnimations = [];
+        flash.clear();
+        hintMarks.clear();
+        gameStartAt = 0;
+        gameEndAt = 0;
+        wrongCount = 0;
+        hintCount = 0;
+        isRetired = false;
+        submitMessage.textContent = '';
+        if (submitScoreButton)
+            submitScoreButton.disabled = false;
+        updateHud();
     }
-    return arr;
-  }
-
-  function loadStageBag(){
-    try {
-      const raw = localStorage.getItem(STAGE_BAG_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(parsed) && parsed.every(key => STAGE_BLUEPRINTS.some(stage => stage.key === key))) return parsed;
-    } catch (error) {
-      console.warn(error);
+    function activeArrowCount() {
+        return arrows.length - removed.size;
     }
-    return [];
-  }
-
-  function saveStageBag(bag){
-    try { localStorage.setItem(STAGE_BAG_KEY, JSON.stringify(bag)); } catch (error) {}
-  }
-
-  function createNewStageBag(){
-    const keys = shuffleKeys(STAGE_BLUEPRINTS.map(stage => stage.key));
-    const lastKey = (() => {
-      try { return localStorage.getItem(LAST_STAGE_KEY) || ''; } catch (error) { return ''; }
-    })();
-
-    if (lastKey && keys.length > 1 && keys[0] === lastKey) {
-      [keys[0], keys[1]] = [keys[1], keys[0]];
+    function updateHud() {
+        remainCount.textContent = String(activeArrowCount());
+        timerText.textContent = formatTime(getFinalTimeMs());
+        const penalty = getPenaltyMs();
+        penaltyText.textContent = penalty ? t("\u52A0\u7B97 +{0}\u79D2", Math.round(penalty / 1000)) : '';
     }
-
-    return keys;
-  }
-
-  function chooseStageBlueprint(){
-    let bag = loadStageBag();
-    if (!bag.length) bag = createNewStageBag();
-
-    const nextKey = bag.shift();
-    saveStageBag(bag);
-    try { localStorage.setItem(LAST_STAGE_KEY, nextKey); } catch (error) {}
-
-    return STAGE_BLUEPRINTS.find(stage => stage.key === nextKey) || STAGE_BLUEPRINTS[0];
-  }
-
-  function cloneStage(){
-    const blueprint = chooseStageBlueprint();
-    currentStageKey = blueprint.key;
-    arrows = generateStageFromSeed(blueprint.seed).map((a, i) => ({
-      id: i,
-      cells: a.cells.map(c => ({x:c.x, y:c.y}))
-    }));
-  }
-
-  function prepareStage(){
-    cloneStage();
-    occ = new Int16Array(GW * GH).fill(-1);
-    for (const a of arrows) {
-      for (const c of a.cells) occ[idx(c.x, c.y)] = a.id;
+    function isExtractable(a) {
+        const c = a.cells;
+        if (c.length < 2)
+            return false;
+        const h = c[c.length - 1];
+        const p = c[c.length - 2];
+        const dx = Math.sign(h.x - p.x);
+        const dy = Math.sign(h.y - p.y);
+        let x = h.x + dx;
+        let y = h.y + dy;
+        while (inb(x, y)) {
+            const id = occ[idx(x, y)];
+            if (id !== -1 && id !== a.id)
+                return false;
+            x += dx;
+            y += dy;
+        }
+        return true;
     }
-    removed = new Set();
-    pullAnimations = [];
-    flash.clear();
-    hintMarks.clear();
-    gameStartAt = 0;
-    gameEndAt = 0;
-    wrongCount = 0;
-    hintCount = 0;
-    scoreSubmitted = false;
-    isRetired = false;
-    submitMessage.textContent = '';
-    if (submitScoreButton) submitScoreButton.disabled = false;
-    const savedName = getSavedPlayerName();
-    if (savedName) playerNameInput.value = savedName;
-    updateHud();
-  }
-
-  function activeArrowCount(){
-    return arrows.length - removed.size;
-  }
-
-  function updateHud(){
-    remainCount.textContent = String(activeArrowCount());
-    timerText.textContent = formatTime(getFinalTimeMs());
-    const penalty = getPenaltyMs();
-    penaltyText.textContent = penalty ? ('加算 +' + Math.round(penalty / 1000) + '秒') : '';
-  }
-
-  function isExtractable(a){
-    const c = a.cells;
-    if (c.length < 2) return false;
-    const h = c[c.length - 1];
-    const p = c[c.length - 2];
-    const dx = Math.sign(h.x - p.x);
-    const dy = Math.sign(h.y - p.y);
-    let x = h.x + dx;
-    let y = h.y + dy;
-    while (inb(x, y)) {
-      const id = occ[idx(x, y)];
-      if (id !== -1 && id !== a.id) return false;
-      x += dx;
-      y += dy;
+    function fitCanvas() {
+        const availW = Math.max(280, boardShell.clientWidth - 16);
+        const availH = Math.max(300, boardShell.clientHeight - 16);
+        cs = Math.max(10, Math.floor(Math.min(availW / GW, availH / GH)));
+        const w = cs * GW;
+        const h = cs * GH;
+        const dpr = Math.min(window.devicePixelRatio || 1, 3);
+        cv.width = Math.floor(w * dpr);
+        cv.height = Math.floor(h * dpr);
+        cv.style.width = w + 'px';
+        cv.style.height = h + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
-    return true;
-  }
-
-  function fitCanvas(){
-    const availW = Math.max(280, boardShell.clientWidth - 16);
-    const availH = Math.max(300, boardShell.clientHeight - 16);
-    cs = Math.max(10, Math.floor(Math.min(availW / GW, availH / GH)));
-    const w = cs * GW;
-    const h = cs * GH;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    cv.width = Math.floor(w * dpr);
-    cv.height = Math.floor(h * dpr);
-    cv.style.width = w + 'px';
-    cv.style.height = h + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  const center = c => ({x:(c.x + 0.5) * cs, y:(c.y + 0.5) * cs});
-  const lineW = () => Math.max(5.2, cs * 0.42);
-
-  function headDir(a){
-    const c = a.cells;
-    const h = c[c.length - 1];
-    const p = c[c.length - 2];
-    return {x:Math.sign(h.x - p.x), y:Math.sign(h.y - p.y)};
-  }
-
-  function strokePts(pts, color, alpha = 1, widthRate = 1){
-    if (pts.length < 2) return;
-    ctx.save();
-    ctx.lineWidth = lineW() * widthRate;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = color;
-    ctx.globalAlpha = alpha;
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i=1; i<pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawPandaHead(P, alpha = 1, scale = 1){
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.font = Math.max(13, cs * 1.02 * scale) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🐼', P.x, P.y + cs * 0.03);
-    ctx.restore();
-  }
-
-  function drawStaticArrow(a, now){
-    const pts = a.cells.map(center);
-    let color = '#202950';
-    const f = flash.get(a.id);
-    if (f) {
-      if (now < f.until) color = f.color;
-      else flash.delete(a.id);
+    const center = c => ({ x: (c.x + 0.5) * cs, y: (c.y + 0.5) * cs });
+    const lineW = () => Math.max(5.2, cs * 0.42);
+    function headDir(a) {
+        const c = a.cells;
+        const h = c[c.length - 1];
+        const p = c[c.length - 2];
+        return { x: Math.sign(h.x - p.x), y: Math.sign(h.y - p.y) };
     }
-
-    const h = hintMarks.get(a.id);
-    if (h) {
-      if (now < h.until) {
-        const pulse = 0.55 + 0.25 * Math.sin((now - h.start) / 70);
-        strokePts(pts, '#22b06a', 0.22 + pulse * 0.18, 2.15);
-      } else {
-        hintMarks.delete(a.id);
-      }
+    function strokePts(pts, color, alpha = 1, widthRate = 1) {
+        if (pts.length < 2)
+            return;
+        ctx.save();
+        ctx.lineWidth = lineW() * widthRate;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++)
+            ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+        ctx.restore();
     }
-
-    strokePts(pts, color, 1, 1);
-    drawPandaHead(pts[pts.length - 1], 1, 1);
-  }
-
-  function buildPullPoly(a){
-    const pts = a.cells.map(center);
-    const d = headDir(a);
-    const last = pts[pts.length - 1];
-    const ext = {x:last.x + d.x * cs * (Math.max(GW, GH) + 3), y:last.y + d.y * cs * (Math.max(GW, GH) + 3)};
-    const full = pts.concat([ext]);
-    const cum = [0];
-    for (let i=1; i<full.length; i++) {
-      const A = full[i-1], B = full[i];
-      cum.push(cum[i-1] + Math.hypot(B.x - A.x, B.y - A.y));
+    function drawPandaHead(P, alpha = 1, scale = 1) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = Math.max(13, cs * 1.02 * scale) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🐼', P.x, P.y + cs * 0.03);
+        ctx.restore();
     }
-    return {full, cum, headArc:cum[pts.length - 1], total:cum[cum.length - 1], dir:d};
-  }
-
-  function sampleAt(poly, arc){
-    if (arc <= 0) return {...poly.full[0]};
-    if (arc >= poly.total) return {...poly.full[poly.full.length - 1]};
-    let i = 1;
-    while (i < poly.cum.length && poly.cum[i] < arc) i++;
-    const t = (arc - poly.cum[i-1]) / (poly.cum[i] - poly.cum[i-1]);
-    const A = poly.full[i-1], B = poly.full[i];
-    return {x:A.x + (B.x - A.x) * t, y:A.y + (B.y - A.y) * t};
-  }
-
-  function windowPts(poly, back, front){
-    back = Math.max(0, back);
-    front = Math.min(poly.total, front);
-    if (front <= back) return [];
-    const out = [sampleAt(poly, back)];
-    for (let i=0; i<poly.cum.length; i++) {
-      if (poly.cum[i] > back && poly.cum[i] < front) out.push({...poly.full[i]});
+    function drawStaticArrow(a, now) {
+        const pts = a.cells.map(center);
+        let color = '#202950';
+        const f = flash.get(a.id);
+        if (f) {
+            if (now < f.until)
+                color = f.color;
+            else
+                flash.delete(a.id);
+        }
+        const h = hintMarks.get(a.id);
+        if (h) {
+            if (now < h.until) {
+                const pulse = 0.55 + 0.25 * Math.sin((now - h.start) / 70);
+                strokePts(pts, '#22b06a', 0.22 + pulse * 0.18, 2.15);
+            }
+            else {
+                hintMarks.delete(a.id);
+            }
+        }
+        strokePts(pts, color, 1, 1);
+        drawPandaHead(pts[pts.length - 1], 1, 1);
     }
-    out.push(sampleAt(poly, front));
-    return out;
-  }
-
-  function draw(){
-    const now = performance.now();
-    ctx.clearRect(0, 0, cv.width, cv.height);
-
-    for (const a of arrows) {
-      if (removed.has(a.id)) continue;
-      drawStaticArrow(a, now);
+    function buildPullPoly(a) {
+        const pts = a.cells.map(center);
+        const d = headDir(a);
+        const last = pts[pts.length - 1];
+        const ext = { x: last.x + d.x * cs * (Math.max(GW, GH) + 3), y: last.y + d.y * cs * (Math.max(GW, GH) + 3) };
+        const full = pts.concat([ext]);
+        const cum = [0];
+        for (let i = 1; i < full.length; i++) {
+            const A = full[i - 1], B = full[i];
+            cum.push(cum[i - 1] + Math.hypot(B.x - A.x, B.y - A.y));
+        }
+        return { full, cum, headArc: cum[pts.length - 1], total: cum[cum.length - 1], dir: d };
     }
-
-    const alive = [];
-    for (const an of pullAnimations) {
-      let p = Math.min(1, (now - an.start) / an.dur);
-      p = 1 - Math.pow(1 - p, 4);
-      const poly = an.poly;
-      const front = poly.headArc + p * poly.total;
-      const back = front - poly.headArc;
-      const pts = windowPts(poly, back, front);
-      if (pts.length >= 2) {
-        strokePts(pts, '#2f6bff', 0.95, 1);
-        drawPandaHead(pts[pts.length - 1], 0.95, 1);
-      }
-      if (p < 1) alive.push(an);
+    function sampleAt(poly, arc) {
+        if (arc <= 0)
+            return { ...poly.full[0] };
+        if (arc >= poly.total)
+            return { ...poly.full[poly.full.length - 1] };
+        let i = 1;
+        while (i < poly.cum.length && poly.cum[i] < arc)
+            i++;
+        const t = (arc - poly.cum[i - 1]) / (poly.cum[i] - poly.cum[i - 1]);
+        const A = poly.full[i - 1], B = poly.full[i];
+        return { x: A.x + (B.x - A.x) * t, y: A.y + (B.y - A.y) * t };
     }
-    pullAnimations = alive;
-  }
-
-  function distToSegment(px, py, a, b){
-    const vx = b.x - a.x;
-    const vy = b.y - a.y;
-    const wx = px - a.x;
-    const wy = py - a.y;
-    const len2 = vx * vx + vy * vy;
-    let t = len2 ? ((wx * vx + wy * vy) / len2) : 0;
-    t = Math.max(0, Math.min(1, t));
-    const x = a.x + vx * t;
-    const y = a.y + vy * t;
-    return Math.hypot(px - x, py - y);
-  }
-
-  function hitArrow(px, py){
-    let best = -1;
-    let bestD = Infinity;
-    const limit = Math.max(lineW() * 2.05, cs * 0.72);
-    for (const a of arrows) {
-      if (removed.has(a.id)) continue;
-      const pts = a.cells.map(center);
-      for (let i=1; i<pts.length; i++) {
-        const d = distToSegment(px, py, pts[i-1], pts[i]);
-        if (d < bestD) { bestD = d; best = a.id; }
-      }
-      const head = pts[pts.length - 1];
-      const headD = Math.hypot(px - head.x, py - head.y) * 0.78;
-      if (headD < bestD) { bestD = headD; best = a.id; }
+    function windowPts(poly, back, front) {
+        back = Math.max(0, back);
+        front = Math.min(poly.total, front);
+        if (front <= back)
+            return [];
+        const out = [sampleAt(poly, back)];
+        for (let i = 0; i < poly.cum.length; i++) {
+            if (poly.cum[i] > back && poly.cum[i] < front)
+                out.push({ ...poly.full[i] });
+        }
+        out.push(sampleAt(poly, front));
+        return out;
     }
-    return bestD <= limit ? best : -1;
-  }
-
-  function showWrongBubble(){
-    const text = WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)];
-    wrongBubble.textContent = text;
-    wrongBubble.classList.add('show');
-    clearTimeout(wrongBubbleTimer);
-    wrongBubbleTimer = setTimeout(() => wrongBubble.classList.remove('show'), 2000);
-  }
-
-  function handleWrongArrow(id){
-    wrongCount++;
-    flash.set(id, {until:performance.now() + 230, color:'#e2483a'});
-    if (navigator.vibrate) navigator.vibrate(22);
-    showWrongBubble();
-    updateHud();
-  }
-
-  function removeArrowImmediately(id){
-    const a = arrows[id];
-    const poly = buildPullPoly(a);
-    removed.add(id);
-    for (const c of a.cells) occ[idx(c.x, c.y)] = -1;
-    pullAnimations.push({id, poly, start:performance.now(), dur:Math.min(190, 78 + a.cells.length * 16)});
-    updateHud();
-
-    if (activeArrowCount() === 0) finishGameClear();
-  }
-
-  function handleBoardPointer(event){
-    if (gameState !== 'playing') return;
-    const rect = cv.getBoundingClientRect();
-    const px = event.clientX - rect.left;
-    const py = event.clientY - rect.top;
-    const id = hitArrow(px, py);
-    if (id === -1) return;
-    const a = arrows[id];
-    if (!a || removed.has(id)) return;
-    if (isExtractable(a)) removeArrowImmediately(id);
-    else handleWrongArrow(id);
-  }
-
-  function useHint(){
-    if (gameState !== 'playing') return;
-    const candidates = arrows.filter(a => !removed.has(a.id) && isExtractable(a));
-    if (!candidates.length) return;
-    const a = candidates[(Math.random() * candidates.length) | 0];
-    hintCount++;
-    hintMarks.set(a.id, {start:performance.now(), until:performance.now() + 1300});
-    flash.set(a.id, {until:performance.now() + 1300, color:'#149b64'});
-    updateHud();
-  }
-
-  function startFromHome(){
-    if (gameState === 'countdown' || gameState === 'playing') return;
-    const savedName = getSavedPlayerName();
-    if (!savedName) {
-      openNameRegistration();
-      return;
+    function draw() {
+        const now = performance.now();
+        ctx.clearRect(0, 0, cv.width, cv.height);
+        for (const a of arrows) {
+            if (removed.has(a.id))
+                continue;
+            drawStaticArrow(a, now);
+        }
+        const alive = [];
+        for (const an of pullAnimations) {
+            let p = Math.min(1, (now - an.start) / an.dur);
+            p = 1 - Math.pow(1 - p, 4);
+            const poly = an.poly;
+            const front = poly.headArc + p * poly.total;
+            const back = front - poly.headArc;
+            const pts = windowPts(poly, back, front);
+            if (pts.length >= 2) {
+                strokePts(pts, '#2f6bff', 0.95, 1);
+                drawPandaHead(pts[pts.length - 1], 0.95, 1);
+            }
+            if (p < 1)
+                alive.push(an);
+        }
+        pullAnimations = alive;
     }
-    playerNameInput.value = savedName;
-    beginCountdown();
-  }
-
-  function beginCountdown(){
-    gameState = 'countdown';
-    showScreen(Screen.COUNTDOWN);
-    let n = 3;
-    countdownText.textContent = String(n);
-    clearInterval(countdownTimer);
-    countdownTimer = setInterval(() => {
-      n -= 1;
-      if (n > 0) {
+    function distToSegment(px, py, a, b) {
+        const vx = b.x - a.x;
+        const vy = b.y - a.y;
+        const wx = px - a.x;
+        const wy = py - a.y;
+        const len2 = vx * vx + vy * vy;
+        let t = len2 ? ((wx * vx + wy * vy) / len2) : 0;
+        t = Math.max(0, Math.min(1, t));
+        const x = a.x + vx * t;
+        const y = a.y + vy * t;
+        return Math.hypot(px - x, py - y);
+    }
+    function hitArrow(px, py) {
+        let best = -1;
+        let bestD = Infinity;
+        const limit = Math.max(lineW() * 2.05, cs * 0.72);
+        for (const a of arrows) {
+            if (removed.has(a.id))
+                continue;
+            const pts = a.cells.map(center);
+            for (let i = 1; i < pts.length; i++) {
+                const d = distToSegment(px, py, pts[i - 1], pts[i]);
+                if (d < bestD) {
+                    bestD = d;
+                    best = a.id;
+                }
+            }
+            const head = pts[pts.length - 1];
+            const headD = Math.hypot(px - head.x, py - head.y) * 0.78;
+            if (headD < bestD) {
+                bestD = headD;
+                best = a.id;
+            }
+        }
+        return bestD <= limit ? best : -1;
+    }
+    function showWrongBubble() {
+        const text = WRONG_MESSAGES[Math.floor(Math.random() * WRONG_MESSAGES.length)];
+        wrongMessage = text;
+        wrongBubble.textContent = t(text);
+        wrongBubble.classList.add('show');
+        clearTimeout(wrongBubbleTimer);
+        wrongBubbleTimer = setTimeout(() => wrongBubble.classList.remove('show'), 2000);
+    }
+    function handleWrongArrow(id) {
+        GameSound.play('hit');
+        wrongCount++;
+        flash.set(id, { until: performance.now() + 230, color: '#e2483a' });
+        if (navigator.vibrate)
+            navigator.vibrate(22);
+        showWrongBubble();
+        updateHud();
+    }
+    function removeArrowImmediately(id) {
+        const a = arrows[id];
+        const poly = buildPullPoly(a);
+        removed.add(id);
+        for (const c of a.cells)
+            occ[idx(c.x, c.y)] = -1;
+        pullAnimations.push({ id, poly, start: performance.now(), dur: Math.min(190, 78 + a.cells.length * 16) });
+        updateHud();
+        if (activeArrowCount() === 0)
+            finishGameClear();
+        else
+            GameSound.play('ok');
+    }
+    function handleBoardPointer(event) {
+        if (gameState !== 'playing')
+            return;
+        const rect = cv.getBoundingClientRect();
+        const px = event.clientX - rect.left;
+        const py = event.clientY - rect.top;
+        const id = hitArrow(px, py);
+        if (id === -1)
+            return;
+        const a = arrows[id];
+        if (!a || removed.has(id))
+            return;
+        if (isExtractable(a))
+            removeArrowImmediately(id);
+        else
+            handleWrongArrow(id);
+    }
+    function useHint() {
+        if (gameState !== 'playing')
+            return;
+        const candidates = arrows.filter(a => !removed.has(a.id) && isExtractable(a));
+        if (!candidates.length)
+            return;
+        const a = candidates[(Math.random() * candidates.length) | 0];
+        hintCount++;
+        GameSound.play('hint');
+        hintMarks.set(a.id, { start: performance.now(), until: performance.now() + 1300 });
+        flash.set(a.id, { until: performance.now() + 1300, color: '#149b64' });
+        updateHud();
+    }
+    function startFromHome() {
+        if (gameState === 'countdown' || gameState === 'playing')
+            return;
+        const name = playerNameStartInput.value.trim();
+        if (Array.from(name).length > 12) {
+            nameRegisterMessage.textContent = t("\u540D\u524D\u306F12\u6587\u5B57\u4EE5\u5185\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
+            playerNameStartInput.focus();
+            return;
+        }
+        startedName = savePlayerName(name);
+        activePlay = scoreQueue.capture(startedName, 'bekutoru_20261031_common_v1');
+        lastResult = null;
+        rankingGeneration++;
+        try {
+            localStorage.removeItem(RESULT_KEY);
+        }
+        catch { }
+        nameRegisterMessage.textContent = '';
+        GameSound.play('start');
+        beginCountdown();
+    }
+    function beginCountdown() {
+        gameState = 'countdown';
+        showScreen(Screen.COUNTDOWN);
+        let n = 3;
         countdownText.textContent = String(n);
-        return;
-      }
-      clearInterval(countdownTimer);
-      countdownText.textContent = '開始';
-      setTimeout(startGameAfterCountdown, 320);
-    }, 1000);
-  }
-
-  function startGameAfterCountdown(){
-    if (gameState !== 'countdown') return;
-    prepareStage();
-    showScreen(Screen.GAME);
-    requestAnimationFrame(() => {
-      fitCanvas();
-      draw();
-      gameStartAt = performance.now();
-      gameEndAt = 0;
-      gameState = 'playing';
-      updateHud();
+        clearInterval(countdownTimer);
+        countdownTimer = setInterval(() => {
+            n -= 1;
+            if (n > 0) {
+                countdownText.textContent = String(n);
+                return;
+            }
+            clearInterval(countdownTimer);
+            countdownText.textContent = t("\u958B\u59CB");
+            setTimeout(startGameAfterCountdown, 320);
+        }, 1000);
+    }
+    function startGameAfterCountdown() {
+        if (gameState !== 'countdown')
+            return;
+        prepareStage();
+        showScreen(Screen.GAME);
+        requestAnimationFrame(() => {
+            fitCanvas();
+            draw();
+            gameStartAt = performance.now();
+            gameEndAt = 0;
+            gameState = 'playing';
+            updateHud();
+        });
+    }
+    function finishGameClear() {
+        if (gameState !== 'playing')
+            return;
+        gameEndAt = performance.now();
+        gameState = 'ended';
+        isRetired = false;
+        wrongBubble.classList.remove('show');
+        finalizeResult('clear');
+        GameSound.play('end');
+        setTimeout(() => showResultScreen('clear'), 180);
+    }
+    function retireGame() {
+        if (gameState !== 'playing')
+            return;
+        gameEndAt = performance.now();
+        gameState = 'ended';
+        isRetired = true;
+        wrongBubble.classList.remove('show');
+        finalizeResult('retire');
+        GameSound.play('end');
+        showResultScreen('retire');
+    }
+    const RESULT_KEY = 'bekutoru:last-result:v1';
+    let rankingGeneration = 0, rankingState = 'idle', rankingRows = [];
+    let storage = null;
+    try {
+        storage = localStorage;
+    }
+    catch { }
+    const scoreQueue = CommonScoreQueue.createScoreQueue({ gameSlug: CONFIG.GAME_SLUG, storage, send: payload => rpc('submit_score_once_shared_v1', payload), onChange(item) {
+            if (lastResult?.play?.id === item.id) {
+                lastResult.status = item.state === 'pending' && lastResult.status === 'sending' ? 'failed' : item.state;
+                saveResult();
+                renderSubmission();
+                if (item.state === 'submitted' && currentScreen === Screen.RESULT)
+                    fetchBekutoruRanking();
+            }
+            renderPending();
+        } });
+    function saveResult() { try {
+        localStorage.setItem(RESULT_KEY, JSON.stringify(lastResult));
+    }
+    catch { } }
+    function restoreResult() {
+        let r;
+        try {
+            r = JSON.parse(localStorage.getItem(RESULT_KEY));
+        }
+        catch {
+            return;
+        }
+        if (!r || !['clear', 'retire'].includes(r.type) || !['raw', 'final', 'wrong', 'hint'].every(k => Number.isInteger(r[k]) && r[k] >= 0) || r.final !== r.raw + r.wrong * WRONG_PENALTY_MS + r.hint * HINT_PENALTY_MS || typeof r.name !== 'string')
+            return;
+        lastResult = r;
+        if (r.status === 'sending')
+            r.status = 'pending';
+        gameState = 'ended';
+        isRetired = r.type === 'retire';
+        showScreen(Screen.RESULT);
+        renderResult();
+        fetchBekutoruRanking();
+    }
+    function finalizeResult(type) {
+        if (!lastResult) {
+            lastResult = { type, raw: getRawTimeMs(), final: getFinalTimeMs(), wrong: wrongCount, hint: hintCount, name: startedName, play: activePlay, status: type === 'retire' ? 'retired' : startedName ? (activePlay ? 'pending' : 'failed') : 'guest' };
+            saveResult();
+            if (type === 'clear' && lastResult.raw > 0 && lastResult.final > 0 && activePlay)
+                scoreQueue.enqueue(activePlay, lastResult.final, lastResult);
+            else if (type === 'clear' && startedName && (!activePlay || lastResult.raw <= 0))
+                lastResult.status = 'failed';
+            saveResult();
+        }
+    }
+    function showResultScreen(type) {
+        finalizeResult(type);
+        showScreen(Screen.RESULT);
+        renderResult();
+        fetchBekutoruRanking();
+        scoreQueue.drain();
+    }
+    function renderResult() {
+        if (!lastResult)
+            return;
+        const r = lastResult;
+        resultTitle.textContent = r.type === 'clear' ? t("\u7D50\u679C\uFF1A\u30AF\u30EA\u30A2") : t("\u7D50\u679C\uFF1A\u30EA\u30BF\u30A4\u30A2");
+        resultScore.textContent = formatTime(r.final);
+        rawTimeText.textContent = formatTime(r.raw);
+        penaltyResultText.textContent = t("+{0}\u79D2", Math.round((r.final - r.raw) / 1000));
+        wrongResultText.textContent = t("{0}\u56DE", r.wrong);
+        hintResultText.textContent = t("{0}\u56DE", r.hint);
+        renderSubmission();
+    }
+    function renderSubmission() {
+        if (!lastResult)
+            return;
+        const messages = { retired: t("\u30EA\u30BF\u30A4\u30A2\u3057\u305F\u8A18\u9332\u306F\u30E9\u30F3\u30AD\u30F3\u30B0\u306B\u9001\u4FE1\u3057\u307E\u305B\u3093\u3002"), guest: t("\u540D\u524D\u306A\u3057\u306E\u30D7\u30EC\u30A4\u3067\u3059\u3002\u8A18\u9332\u306F\u516C\u958B\u3057\u307E\u305B\u3093\u3002"), pending: t("\u8A18\u9332\u306F\u9001\u4FE1\u5F85\u3061\u3067\u3059\u3002\u901A\u4FE1\u56DE\u5FA9\u6642\u306B\u540C\u3058\u8A18\u9332\u3092\u518D\u9001\u3057\u307E\u3059\u3002"), sending: t("\u30E9\u30F3\u30AD\u30F3\u30B0\u9001\u4FE1\u4E2D..."), submitted: t("\u30E9\u30F3\u30AD\u30F3\u30B0\u306B\u81EA\u52D5\u9001\u4FE1\u3057\u307E\u3057\u305F\u3002"), failed: t("\u9001\u4FE1\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u7D50\u679C\u3092\u4FDD\u5B58\u3057\u3066\u3044\u307E\u3059\u3002\u518D\u8A66\u884C\u3067\u304D\u307E\u3059\u3002"), rejected: t("\u8A18\u9332\u306F\u53D7\u3051\u4ED8\u3051\u3089\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u7D50\u679C\u306F\u4FDD\u5B58\u3057\u3066\u3044\u307E\u3059\u3002") };
+        submitMessage.textContent = messages[lastResult.status] || messages.failed;
+        submitScoreButton.hidden = !lastResult.play || !['pending', 'failed'].includes(lastResult.status);
+        submitScoreButton.disabled = lastResult.status === 'sending';
+    }
+    function renderPending() { const records = scoreQueue.list().filter(r => r.state !== 'rejected'), button = document.getElementById('pendingRetry'); button.hidden = !records.length; button.disabled = records.some(r => r.state === 'sending'); }
+    async function rpc(fn, payload) {
+        const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 8000);
+        try {
+            const response = await fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { apikey: CONFIG.SUPABASE_PUBLISHABLE_KEY, Authorization: 'Bearer ' + CONFIG.SUPABASE_PUBLISHABLE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: controller.signal });
+            const body = await response.text();
+            if (!response.ok) {
+                const error = new Error('RPC failed');
+                try {
+                    error.code = JSON.parse(body).code;
+                }
+                catch { }
+                throw error;
+            }
+            return body ? JSON.parse(body) : null;
+        }
+        finally {
+            clearTimeout(timer);
+        }
+    }
+    function parseLeaderboard(data) { if (!Array.isArray(data) || data.some(r => !r || !Number.isSafeInteger(r.rank_no) || r.rank_no < 1 || typeof r.display_name !== 'string' || !Number.isInteger(r.best_score)))
+        throw new Error('Invalid ranking response'); return data.slice(0, 30); }
+    async function fetchBekutoruRanking() {
+        const generation = ++rankingGeneration, result = lastResult;
+        rankingState = 'loading';
+        renderRanking();
+        try {
+            const rows = parseLeaderboard(await rpc('get_best_score_ranking', { p_game_slug: CONFIG.GAME_SLUG, p_limit: 30 }));
+            if (generation !== rankingGeneration || lastResult !== result || currentScreen !== Screen.RESULT)
+                return;
+            rankingRows = rows;
+            rankingState = rows.length ? 'loaded' : 'empty';
+        }
+        catch {
+            if (generation !== rankingGeneration || lastResult !== result || currentScreen !== Screen.RESULT)
+                return;
+            rankingState = 'failed';
+        }
+        renderRanking();
+    }
+    function renderRanking() {
+        rankingList.replaceChildren();
+        document.getElementById('rankingRetry').disabled = rankingState === 'loading';
+        if (rankingState !== 'loaded') {
+            const message = document.createElement('div');
+            message.className = 'message';
+            message.textContent = rankingState === 'failed' ? t("\u30E9\u30F3\u30AD\u30F3\u30B0\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002") : rankingState === 'empty' ? t("\u307E\u3060\u8A18\u9332\u304C\u3042\u308A\u307E\u305B\u3093\u3002") : t("\u8AAD\u307F\u8FBC\u307F\u4E2D...");
+            rankingList.append(message);
+            return;
+        }
+        for (const row of rankingRows) {
+            const div = document.createElement('div');
+            div.className = 'rank-row';
+            for (const [key, value] of [['rank', row.rank_no], ['name', row.display_name], ['score', formatScoreFromSupabase(row.best_score)]]) {
+                const cell = document.createElement('div');
+                cell.className = key;
+                cell.textContent = String(value);
+                div.append(cell);
+            }
+            rankingList.append(div);
+        }
+    }
+    function formatScoreFromSupabase(score) { return t("{0}\u79D2", (score / 1000).toFixed(3)); }
+    function buildGameShareText() {
+        return [
+            t("\u30D9\u30AF\u53D6\u308B"),
+            t("\u53EF\u611B\u3044\uD83D\uDC3C\u3092\u9003\u304C\u3057\u3066\u3042\u3052\u3088\u3046\uFF01"),
+            CONFIG.GAME_URL
+        ].join('\n');
+    }
+    function copyGameShareText() { window.openGameShareX(buildGameShareText()); }
+    function buildShareText() {
+        if (!lastResult)
+            return buildGameShareText();
+        const r = lastResult;
+        return [t(CONFIG.GAME_TITLE_DISPLAY), r.type === 'clear' ? t("\u7D50\u679C\uFF1A\u30AF\u30EA\u30A2") : t("\u7D50\u679C\uFF1A\u30EA\u30BF\u30A4\u30A2"), t("\u6700\u7D42\u30BF\u30A4\u30E0\uFF1A{0}", formatTime(r.final)), t("\u5B9F\u6642\u9593\uFF1A{0}", formatTime(r.raw)), t("\u9593\u9055\u3044\uFF1A{0}\u56DE", r.wrong), t("\u30D2\u30F3\u30C8\uFF1A{0}\u56DE", r.hint), CONFIG.GAME_URL].join('\n');
+    }
+    function copyShareText() { window.openGameShareX(buildShareText()); }
+    function retryFromResult() {
+        gameState = 'idle';
+        startFromHome();
+    }
+    function backHomeFromResult() {
+        gameState = 'idle';
+        showScreen(Screen.HOME);
+    }
+    document.getElementById('startButton').addEventListener('click', startFromHome);
+    document.getElementById('rulesButton').addEventListener('click', () => showScreen(Screen.RULES));
+    document.getElementById('shareGameButton').addEventListener('click', copyGameShareText);
+    document.getElementById('backHomeFromRules').addEventListener('click', () => showScreen(Screen.HOME));
+    playerNameStartInput.addEventListener('input', () => { nameRegisterMessage.textContent = ''; savePlayerName(playerNameStartInput.value); });
+    playerNameStartInput.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing && event.keyCode !== 229)
+        event.preventDefault(); });
+    submitScoreButton.addEventListener('click', () => scoreQueue.drain());
+    document.getElementById('pendingRetry').addEventListener('click', () => scoreQueue.drain());
+    document.getElementById('rankingRetry').addEventListener('click', fetchBekutoruRanking);
+    window.addEventListener('online', () => scoreQueue.drain());
+    window.addEventListener('game-language-change', () => {
+        if (currentScreen === Screen.GAME) {
+            updateHud();
+            if (wrongMessage)
+                wrongBubble.textContent = t(wrongMessage);
+            fitCanvas();
+            draw();
+        }
+        if (currentScreen === Screen.RESULT)
+            renderResult();
+        renderRanking();
     });
-  }
-
-  function finishGameClear(){
-    if (gameState !== 'playing') return;
-    gameEndAt = performance.now();
-    gameState = 'ended';
-    isRetired = false;
-    wrongBubble.classList.remove('show');
-    setTimeout(() => showResultScreen('clear'), 180);
-  }
-
-  function retireGame(){
-    if (gameState !== 'playing') return;
-    gameEndAt = performance.now();
-    gameState = 'ended';
-    isRetired = true;
-    wrongBubble.classList.remove('show');
-    showResultScreen('retire');
-  }
-
-  function showResultScreen(type){
-    const raw = getRawTimeMs();
-    const penalty = getPenaltyMs();
-    const final = getFinalTimeMs();
-    resultTitle.textContent = type === 'clear' ? '結果：クリア' : '結果：リタイア';
-    resultScore.textContent = formatTime(final);
-    rawTimeText.textContent = formatTime(raw);
-    penaltyResultText.textContent = '+' + Math.round(penalty / 1000) + '秒';
-    wrongResultText.textContent = wrongCount + '回';
-    hintResultText.textContent = hintCount + '回';
-
-    const savedName = getSavedPlayerName();
-    if (savedName) playerNameInput.value = savedName;
-
-    scoreSubmitArea.hidden = false;
-    if (type === 'clear') {
-      submitMessage.textContent = 'ランキング送信中...';
-    } else {
-      submitMessage.textContent = 'リタイアした記録はランキングに送信しません。';
-    }
-
-    showScreen(Screen.RESULT);
-
-    if (type === 'clear') {
-      submitBekutoruScore();
-    } else {
-      fetchBekutoruRanking(30);
-    }
-  }
-
-  async function ensureSupabaseClientReady(){
-    if (supabaseClient) return true;
-    loadSupabaseScript();
-    for (let i = 0; i < 30; i++) {
-      if (supabaseClient) return true;
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    return !!supabaseClient;
-  }
-
-  async function submitBekutoruScore(){
-    if (scoreSubmitted) return;
-    if (isRetired) {
-      submitMessage.textContent = 'リタイアした記録はランキングに送信しません。';
-      fetchBekutoruRanking(30);
-      return;
-    }
-
-    const savedName = getSavedPlayerName();
-    const name = String(savedName || playerNameInput.value || '').trim();
-    if (!name) {
-      submitMessage.textContent = '名前が未登録です。ホームから登録してください。';
-      fetchBekutoruRanking(30);
-      return;
-    }
-    playerNameInput.value = name;
-
-    const ready = await ensureSupabaseClientReady();
-    if (!ready) {
-      submitMessage.textContent = 'ランキング送信に失敗しました。通信環境を確認してください。';
-      fetchBekutoruRanking(30);
-      return;
-    }
-
-    const rawTimeMs = getRawTimeMs();
-    const finalTimeMs = getFinalTimeMs();
-    if (rawTimeMs <= 0 || finalTimeMs <= 0) {
-      submitMessage.textContent = 'タイムが不正です。';
-      fetchBekutoruRanking(30);
-      return;
-    }
-
-    scoreSubmitted = true;
-    if (submitScoreButton) submitScoreButton.disabled = true;
-    submitMessage.textContent = 'ランキング送信中...';
-
-    const { data, error } = await supabaseClient.rpc('submit_score', {
-      p_display_name: name,
-      p_game_slug: CONFIG.GAME_SLUG,
-      p_score: finalTimeMs,
-      p_client_version: 'bekutoru_v9_stage_bag_unique'
+    document.getElementById('retireButton').addEventListener('click', retireGame);
+    document.getElementById('hintButton').addEventListener('click', useHint);
+    document.getElementById('shareResultButton').addEventListener('click', copyShareText);
+    document.getElementById('retryButton').addEventListener('click', retryFromResult);
+    document.getElementById('homeButtonFromResult').addEventListener('click', backHomeFromResult);
+    cv.addEventListener('pointerdown', (event) => { event.preventDefault(); handleBoardPointer(event); }, { passive: false });
+    window.addEventListener('resize', () => { if (currentScreen === Screen.GAME) {
+        fitCanvas();
+        draw();
+    } });
+    document.addEventListener('visibilitychange', () => {
+        // 一時停止は入れない。画面を離れている時間もタイムに含める。
     });
-
-    if (error) {
-      console.error(error);
-      scoreSubmitted = false;
-      if (submitScoreButton) submitScoreButton.disabled = false;
-      submitMessage.textContent = 'ランキング送信に失敗しました。少し時間を置いてもう一度遊んでください。';
-      fetchBekutoruRanking(30);
-      return;
+    function loop() {
+        if (gameState === 'playing')
+            updateHud();
+        if (currentScreen === Screen.GAME)
+            draw();
+        requestAnimationFrame(loop);
     }
-
-    const row = Array.isArray(data) ? data[0] : data;
-    const accepted = !row || row.accepted !== false;
-    const newBest = row && (row.is_new_best === true || row.is_new_best === 'true');
-
-    if (!accepted) {
-      submitMessage.textContent = 'ランキングには登録されませんでした。';
-    } else {
-      submitMessage.textContent = newBest ? 'ランキングに自動送信しました。ベスト更新です。' : 'ランキングに自動送信しました。';
-      showToast('ランキングに送信しました');
-    }
-
-    fetchBekutoruRanking(30);
-  }
-
-  async function fetchBekutoruRanking(limit = 30){
-    if (!supabaseClient) {
-      rankingList.innerHTML = '<div class="message">Supabase未接続です。</div>';
-      return;
-    }
-    rankingList.innerHTML = '<div class="message">読み込み中...</div>';
-    const { data, error } = await supabaseClient.rpc('get_best_score_ranking', {
-      p_game_slug: CONFIG.GAME_SLUG,
-      p_limit: limit
-    });
-    if (error) {
-      console.error(error);
-      rankingList.innerHTML = '<div class="message">ランキングを読み込めませんでした。</div>';
-      return;
-    }
-    const rows = data || [];
-    if (!rows.length) {
-      rankingList.innerHTML = '<div class="message">まだ記録がありません。</div>';
-      return;
-    }
-    rankingList.innerHTML = rows.map((row, index) => {
-      const rank = row.rank_no ?? row.rank ?? row.ranking ?? index + 1;
-      const name = escapeHtml(row.display_name || row.player_name || row.name || '名無し');
-      const score = row.best_score ?? row.score ?? row.result_best_score ?? row.first_score ?? 0;
-      return '<div class="rank-row"><div class="rank">' + rank + '</div><div class="name">' + name + '</div><div class="score">' + formatScoreFromSupabase(score) + '</div></div>';
-    }).join('');
-  }
-
-  function formatScoreFromSupabase(score){
-    const n = Number(score || 0);
-    return (n / 1000).toFixed(3) + '秒';
-  }
-
-  function escapeHtml(str){
-    return String(str).replace(/[&<>"']/g, (s) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-  }
-
-  function buildGameShareText(){
-    return [
-      'ベク取る',
-      '可愛い🐼を逃がしてあげよう！',
-      CONFIG.GAME_URL
-    ].join('\n');
-  }
-
-  function copyGameShareText(){ window.openGameShareX(buildGameShareText()); }
-
-  function buildShareText(){
-    if (isRetired) {
-      return [
-        CONFIG.GAME_TITLE_DISPLAY,
-        '結果：リタイア',
-        'ここまでの時間：' + formatTime(getFinalTimeMs()),
-        CONFIG.GAME_URL
-      ].join('\n');
-    }
-    return [
-      CONFIG.GAME_TITLE_DISPLAY,
-      '結果：クリア',
-      '最終タイム：' + formatTime(getFinalTimeMs()),
-      '実時間：' + formatTime(getRawTimeMs()),
-      '間違い：' + wrongCount + '回',
-      'ヒント：' + hintCount + '回',
-      CONFIG.GAME_URL
-    ].join('\n');
-  }
-
-  function copyShareText(){ window.openGameShareX(buildShareText()); }
-
-  function retryFromResult(){
-    gameState = 'idle';
-    startFromHome();
-  }
-
-  function backHomeFromResult(){
-    gameState = 'idle';
+    preventMobileBrowserGestures();
+    playerNameStartInput.value = getSavedPlayerName();
     showScreen(Screen.HOME);
-  }
-
-  document.getElementById('startButton').addEventListener('click', startFromHome);
-  document.getElementById('rulesButton').addEventListener('click', () => showScreen(Screen.RULES));
-  document.getElementById('shareGameButton').addEventListener('click', copyGameShareText);
-  document.getElementById('backHomeFromRules').addEventListener('click', () => showScreen(Screen.HOME));
-  document.getElementById('confirmNameButton').addEventListener('click', confirmNameAndStart);
-  document.getElementById('backHomeFromName').addEventListener('click', () => showScreen(Screen.HOME));
-  playerNameStartInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') confirmNameAndStart(); });
-  document.getElementById('retireButton').addEventListener('click', retireGame);
-  document.getElementById('hintButton').addEventListener('click', useHint);
-  document.getElementById('shareResultButton').addEventListener('click', copyShareText);
-  document.getElementById('retryButton').addEventListener('click', retryFromResult);
-  document.getElementById('homeButtonFromResult').addEventListener('click', backHomeFromResult);
-  cv.addEventListener('pointerdown', (event) => { event.preventDefault(); handleBoardPointer(event); }, {passive:false});
-  window.addEventListener('resize', () => { if (currentScreen === Screen.GAME) { fitCanvas(); draw(); } });
-  document.addEventListener('visibilitychange', () => {
-    // 一時停止は入れない。画面を離れている時間もタイムに含める。
-  });
-
-  function loop(){
-    if (gameState === 'playing') updateHud();
-    if (currentScreen === Screen.GAME) draw();
+    restoreResult();
+    renderPending();
+    scoreQueue.drain();
     requestAnimationFrame(loop);
-  }
-
-  preventMobileBrowserGestures();
-  loadSupabaseScript();
-  showScreen(Screen.HOME);
-  requestAnimationFrame(loop);
 })();
 </script>
 </body>
