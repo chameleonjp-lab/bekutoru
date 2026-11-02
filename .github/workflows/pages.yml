@@ -37,6 +37,13 @@ jobs:
           path: test-artifacts
       - run: node tools/browser-smoke.cjs
       - run: BROWSER=webkit node tools/browser-smoke.cjs
+      - run: node tools/share-visual.cjs
+      - run: BROWSER=webkit node tools/share-visual.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: share-acceptance-${{ github.sha }}
+          path: test-artifacts
       - name: Stage the validated public file
         run: python3 tools/check-site.py --out _site
       - name: Upload this commit's Pages artifact

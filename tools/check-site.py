@@ -80,6 +80,10 @@ def main():
                 checked += 1
     if checked == 0:
         raise ValueError('No executable game script found')
+    image = ROOT / 'assets/social-card.png'
+    data = image.read_bytes()
+    if data[:8] != b'\x89PNG\r\n\x1a\n' or int.from_bytes(data[16:20], 'big') != 1200 or int.from_bytes(data[20:24], 'big') != 630:
+        raise ValueError('SNS image must be a 1200x630 PNG')
     if options.out:
         output = options.out.resolve()
         if output == ROOT or ROOT not in output.parents or output.name != '_site':
@@ -88,6 +92,8 @@ def main():
             raise ValueError('Refusing to overwrite an existing release directory')
         output.mkdir(exist_ok=True)
         shutil.copy2(ROOT / 'index.html', output / 'index.html')
+        (output / 'assets').mkdir()
+        shutil.copy2(image, output / 'assets/social-card.png')
         (output / '.nojekyll').touch()
     print(f'Validated index.html: {checked} JavaScript blocks; single-file public release')
 

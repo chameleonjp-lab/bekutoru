@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{readFileSync,existsSync,mkdtempSync,mkdirSync,copyFileSync,readdirSync}from'node:fs';import{tmpdir}from'node:os';import{join}from'node:path';import{spawnSync}from'node:child_process';import vm from'node:vm';
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8'),url='https://chameleonjp.codeberg.page/bekutoru/',tags='#ベク取る #ゲーム制作';
+const data=JSON.parse(html.match(/<script id="localeData" type="application\/json">([\s\S]*?)<\/script>/)[1]);
+function weight(s){return[...s.replace(/https?:\/\/[^\s]+/gu,'a'.repeat(23))].reduce((n,c)=>n+(c.codePointAt(0)<=0x10ff?1:2),0)}
+test('actual home/clear/retire text keeps translated results and exact two tags within 280',()=>{
+ const funcs=html.slice(html.indexOf('    function buildGameShareText()'),html.indexOf('    function retryFromResult()'));
+ const format=html.slice(html.indexOf('    function formatTime('),html.indexOf('    function getRawTimeMs('));
+ for(const [lang,catalog]of Object.entries(data.catalogs)){
+ const t=(s,...args)=>(catalog[data.source.indexOf(s)]||s).replace(/\{(\d+)\}/g,(_,i)=>args[i]);
+ const ctx={t,CONFIG:{GAME_TITLE_DISPLAY:'🐼ベク取る🐼',GAME_URL:url},lastResult:null};vm.createContext(ctx);vm.runInContext(format+funcs,ctx);
+ for(const type of [null,'clear','retire']){ctx.lastResult=type?{type,raw:12340,final:32340,wrong:1,hint:1,name:'DO NOT SHARE',play:null}:null;const s=ctx.buildShareText();assert.ok(s.endsWith(tags),lang);assert.deepEqual(s.match(/#[^\s]+/gu),['#ベク取る','#ゲーム制作']);assert.ok(s.includes(url));assert.ok(!s.includes('DO NOT SHARE'));if(type)assert.ok(s.includes('00:32.340'));assert.ok(weight(s)<=280,lang+': '+weight(s));}
+ }
+});
+test('OG and Twitter use exact 1200x630 fixed image',()=>{for(const attr of ['property="og:image"','name="twitter:image"'])assert.ok(html.includes(`<meta ${attr} content="${url}assets/social-card.png"`));assert.ok(html.includes('name="twitter:card" content="summary_large_image"'));const p=new URL('../assets/social-card.png',import.meta.url);assert.ok(existsSync(p));const b=readFileSync(p);assert.equal(b.subarray(1,4).toString(),'PNG');assert.equal(b.readUInt32BE(16),1200);assert.equal(b.readUInt32BE(20),630);});
+test('staging preserves original image bytes, only intended release files',()=>{const root=mkdtempSync(join(tmpdir(),'beku-card-'));for(const d of ['tools','assets'])mkdirSync(join(root,d));for(const f of ['index.html','tools/check-site.py','tools/score-queue.cjs','assets/social-card.png']){const src=new URL('../'+f,import.meta.url);assert.ok(existsSync(src),f);copyFileSync(src,join(root,f));}const p=spawnSync('python3',[join(root,'tools/check-site.py'),'--out',join(root,'_site')],{encoding:'utf8'});assert.equal(p.status,0,p.stderr);assert.deepEqual(readdirSync(join(root,'_site')).sort(),['.nojekyll','assets','index.html']);assert.deepEqual(readFileSync(join(root,'_site/assets/social-card.png')),readFileSync(new URL('../assets/social-card.png',import.meta.url)));});
