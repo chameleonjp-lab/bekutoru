@@ -109,3 +109,7 @@ iPhone実機では: 初回音オン→音を消して再読み込み→0保存�
 未完了は引き続き、normal receipt SQLの本番適用と確認、name-keyに依存しない参加者識別・厳密な30人集計、Pages Sourceの設定確認/新URL機能比較と移行、母語話者・iPhone Safari実機・実音・長時間確認。CI成功だけでこれらを完了扱いにしない。適用/戻し方は前節の順序を維持する。
 
 03:37 JSTの読取専用定義照合で、現DB `normalize_player_name(text)` は `btrim(coalesce(input_name, ''))` のみ、`submit_score_unverified` の表示名も同じtrimであると確認した（NFKC変換等はない）。クライアントが開始時にtrimした名前と2つの応答名を比較する。応答はPostgRESTの**1行配列**を必須とし、bare object/複数行/列欠損を受理扱いにしない。first/bestは既存SQLのsigned integerを維持し、既存記録の負値をこの改修で書換え・再判定しない。現在の登録もactive/shared・昇順・scale1000/小数3桁・Codeberg URLのまま再確認した。関数を呼び出してのスコア登録試験やDB更新は行っていない。
+
+
+## 2026-11-02 09:46 JST 通常受領応答の境界検証
+基準head dd5511b068803c065497090a3b03b485f135646b。first/best/countのsigned int4境界と現登録asc方式のbest方向を確認し、提出点・初回点より大きいbestを受領済にしない。異常応答後も元キューとUUIDを保持、再読込で同一内容を再送。合法な負の初回/自己ベストと0を維持、採点/識別/DBは非変更。7異常RED→GREENと合法履歴3例追加、unit/HTML/JS/queue一致/15言語検査成功。独立reviewと新head両ブラウザCIはPR本文へ記録。実機/本番/本人識別等の残件は維持。
